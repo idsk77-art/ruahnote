@@ -65,3 +65,14 @@ On Windows PowerShell execution-policy restricted environments, use:
 npm.cmd run lint
 npm.cmd run build
 ```
+
+## Render
+
+The repository includes `render.yaml`. The intended Render commands are:
+
+```text
+Build Command: npm ci && npm run build
+Start Command: npm run render:start
+```
+
+`render:start` binds Next.js to `0.0.0.0` and Render's `PORT`.

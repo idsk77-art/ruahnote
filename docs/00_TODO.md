@@ -31,6 +31,7 @@
 - [x] README 최신화
 - [x] 운영 매뉴얼 최신화
 - [x] `render.yaml` 배포 설정 추가
+- [x] Render 전용 start wrapper 추가
 - [ ] UI 컴포넌트 분리
 - [ ] 공통 타입 파일 정리
 - [ ] Render 배포 매뉴얼 보강

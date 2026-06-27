@@ -26,6 +26,7 @@
 - [x] README / 운영 매뉴얼 최신화
 - [x] 최신 코드 GitHub push
 - [x] Render 배포 설정 명시를 위한 `render.yaml` 추가
+- [x] Render 전용 `render:start` 스크립트 추가
 
 ## 진행 중
 
@@ -43,7 +44,7 @@
 
 1. Render Dashboard에서 latest deploy logs 확인
 2. Build Command가 `npm ci && npm run build`인지 확인
-3. Start Command가 `npm run start`인지 확인
+3. Start Command가 `npm run render:start`인지 확인
 4. Node version이 20 이상인지 확인
 5. Render Dashboard에 환경변수 등록
 6. Manual Deploy 실행
