@@ -2,6 +2,8 @@
 
 ## High Priority
 
+- [ ] Render latest deploy logs 확인
+- [ ] Render 서비스 404 복구
 - [ ] Supabase 환경변수 Render에 등록
 - [ ] Render `/api/health` 환경변수 true 상태 확인
 - [ ] 첫 admin 사용자 지정
@@ -28,7 +30,7 @@
 - [x] 전역 네비게이션 구현
 - [x] README 최신화
 - [x] 운영 매뉴얼 최신화
-- [x] GitHub push / Render 코드 배포 확인
+- [x] `render.yaml` 배포 설정 추가
 - [ ] UI 컴포넌트 분리
 - [ ] 공통 타입 파일 정리
 - [ ] Render 배포 매뉴얼 보강
