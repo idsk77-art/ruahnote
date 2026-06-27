@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
-const adminPassword = "ruahnote-admin";
+const adminPassword = "nimda";
 const adminStorageKey = "ruahnote.admin.isLoggedIn.v1";
 
 // Temporary development-only client-side auth.
