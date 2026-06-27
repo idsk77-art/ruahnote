@@ -12,7 +12,8 @@
     "render:start": "node scripts/render-start.mjs",
     "lint": "eslint",
     "db:migrate": "node scripts/apply-supabase-migrations.mjs",
-    "admin:set": "node scripts/set-admin-user.mjs"
+    "admin:set": "node scripts/set-admin-user.mjs",
+    "setup:check": "node scripts/check-project-setup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
