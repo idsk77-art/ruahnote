@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f4ec;
+  --foreground: #2f3430;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.schedule-theme-light {
+  --app-bg: #f7f4ec;
+  --surface: #ffffff;
+  --header-bg: #eee7da;
+  --summary-bg: #f7f4ec;
+  --control-bg: #ffffff;
+  --hover: #f2efe7;
+  --button-bg: #ffffff;
+  --button-text: #2f3430;
+  --button-border: #d0d3ca;
+  --button-hover: #f2efe7;
+  --primary-button-bg: #7f927f;
+  --primary-button-text: #ffffff;
+  --primary-button-border: #7f927f;
+  --primary-button-hover: #718471;
+  --danger-bg: #f7eee9;
+  --danger-text: #a64c3f;
+  --danger-border: #e8b8b0;
+  --danger-hover: #f1ddd6;
+  --section: #d9e5ea;
+  --table-head: #2f3430;
+  --track: #daddd5;
+  --border: #daddd5;
+  --header-border: #cbbfa9;
+  --text: #2f3430;
+  --soft-text: #555b53;
+  --muted: #767c73;
+  --primary: #7f927f;
+  --focus-ring: #dce8d8;
+}
+
+.schedule-theme-dark {
+  color-scheme: dark;
+  --app-bg: #0a0a0a;
+  --surface: #151515;
+  --header-bg: #222222;
+  --summary-bg: #1f1f1f;
+  --control-bg: #0f0f0f;
+  --hover: #262626;
+  --button-bg: #101010;
+  --button-text: #f4f4f5;
+  --button-border: #3a3a3a;
+  --button-hover: #1d1d1d;
+  --primary-button-bg: #e7e7e7;
+  --primary-button-text: #111111;
+  --primary-button-border: #e7e7e7;
+  --primary-button-hover: #d7d7d7;
+  --danger-bg: #251816;
+  --danger-text: #e46e5e;
+  --danger-border: #a86a61;
+  --danger-hover: #33201d;
+  --section: #1a1a1a;
+  --table-head: #050505;
+  --track: #2f2f2f;
+  --border: #333333;
+  --header-border: #4a4a4a;
+  --text: #f4f4f5;
+  --soft-text: #d4d4d8;
+  --muted: #a1a1aa;
+  --primary: #e5e5e5;
+  --focus-ring: #3f3f46;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-page {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .print-section {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .schedule-theme-light,
+  .schedule-theme-dark {
+    --app-bg: #ffffff;
+    --surface: #ffffff;
+    --header-bg: #ffffff;
+    --summary-bg: #ffffff;
+    --control-bg: #ffffff;
+    --hover: #ffffff;
+    --button-bg: #ffffff;
+    --button-text: #2f3430;
+    --button-border: #cfd3cb;
+    --button-hover: #ffffff;
+    --primary-button-bg: #ffffff;
+    --primary-button-text: #2f3430;
+    --primary-button-border: #cfd3cb;
+    --primary-button-hover: #ffffff;
+    --danger-bg: #ffffff;
+    --danger-text: #2f3430;
+    --danger-border: #cfd3cb;
+    --danger-hover: #ffffff;
+    --section: #eef4f6;
+    --table-head: #2f3430;
+    --track: #daddd5;
+    --border: #cfd3cb;
+    --header-border: #cfd3cb;
+    --text: #2f3430;
+    --soft-text: #555b53;
+    --muted: #767c73;
+    --primary: #7f927f;
+    --focus-ring: #dce8d8;
+  }
+
+  .schedule-table {
+    min-width: 0 !important;
+    font-size: 10px;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    padding: 6px !important;
+  }
+
+  input,
+  select,
+  textarea {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    resize: none !important;
+  }
+}
