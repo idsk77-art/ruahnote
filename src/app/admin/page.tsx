@@ -1,12 +1,23 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
-const adminPassword = "nimda";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { hasBrowserSupabaseConfig } from "@/lib/supabase/config";
+
+const adminPassword = "ruahnote-admin";
 const adminStorageKey = "ruahnote.admin.isLoggedIn.v1";
 
-// Temporary development-only client-side auth.
-// Replace this boundary with Supabase Auth and an admin role check before production use.
+type HealthResponse = {
+  ok: boolean;
+  app: string;
+  version: string;
+  checkedAt: string;
+  env: Record<string, boolean>;
+};
+
+// Temporary development-only client-side fallback auth.
+// Prefer Supabase Auth with profiles.role = "admin" before production use.
 function verifyAdminPassword(password: string) {
   return password === adminPassword;
 }
@@ -20,16 +31,22 @@ const summaryItems = [
 ];
 
 const projectProgress = {
-  value: 35,
+  value: 60,
   done: [
     "Git installed",
     "GitHub connected",
     "Render deployed",
-    "Basic dashboard deployed",
-    "Docs project management system configured",
+    "Developer Admin mode",
+    "Supabase client foundation",
+    "Auth screen foundation",
+    "Notes CRUD with DB-ready storage",
   ],
-  active: ["Developer Admin mode", "Supabase preparation"],
-  planned: ["Login/Auth", "Notes CRUD", "File upload", "AI summary", "Google integration"],
+  active: [
+    "Supabase migration apply",
+    "Render environment variables",
+    "Admin auth replacement",
+  ],
+  planned: ["File upload", "AI summary", "OpenAI usage tracking", "Google integration"],
 };
 
 const deployStatus = [
@@ -37,24 +54,29 @@ const deployStatus = [
   ["Service", "ruahnote"],
   ["Branch", "main"],
   ["Status", "Live"],
-  ["Last Deploy", "2026-06-27 16:20 KST"],
+  ["Last Deploy", "mock value"],
   ["Build", "Success"],
 ];
 
 const commits = [
+  "feat: add developer admin dashboard",
   "docs project management system configured",
   "resolve gitignore conflict",
   "first commit",
 ];
 
 const todos = {
-  High: ["Connect Supabase", "Implement Auth", "Persist notes to DB"],
+  High: [
+    "Apply Supabase migrations",
+    "Register Render env variables",
+    "Replace Admin password with Supabase admin role",
+  ],
   Medium: [
-    "Wire real Admin API",
+    "Verify Notes DB CRUD in Supabase",
     "Connect Render deploy logs",
     "Track OpenAI usage",
   ],
-  Low: ["Refine admin screen design", "Add charts"],
+  Low: ["Refine admin charts", "Add storage upload monitor"],
 };
 
 const apiUsage = [
@@ -79,15 +101,69 @@ const renderStatus = [
 ];
 
 export default function AdminPage() {
+  const isSupabaseConfigured = hasBrowserSupabaseConfig();
+  const supabase = useMemo(
+    () => (isSupabaseConfigured ? createBrowserSupabaseClient() : null),
+    [isSupabaseConfigured],
+  );
   const [isReady, setIsReady] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [authStatus, setAuthStatus] = useState("Supabase admin role not checked.");
 
   useEffect(() => {
-    setIsLoggedIn(window.localStorage.getItem(adminStorageKey) === "true");
-    setIsReady(true);
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      async function checkAdminAccess() {
+        if (window.localStorage.getItem(adminStorageKey) === "true") {
+          setIsLoggedIn(true);
+          setAuthStatus("Temporary admin session active.");
+          setIsReady(true);
+          return;
+        }
+
+        if (!supabase) {
+          setAuthStatus("Supabase is not configured. Use temporary admin password.");
+          setIsReady(true);
+          return;
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData.session?.user.id;
+
+        if (!userId) {
+          setAuthStatus("Login with a Supabase admin account or use temporary admin password.");
+          setIsReady(true);
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
+
+        if (profileError) {
+          setAuthStatus(profileError.message);
+          setIsReady(true);
+          return;
+        }
+
+        if (profile?.role === "admin") {
+          setIsLoggedIn(true);
+          setAuthStatus("Supabase admin role verified.");
+        } else {
+          setAuthStatus("Supabase session found, but this user is not an admin.");
+        }
+
+        setIsReady(true);
+      }
+
+      checkAdminAccess();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [supabase]);
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -126,6 +202,7 @@ export default function AdminPage() {
         <AdminDashboard onLogout={handleLogout} />
       ) : (
         <LoginCard
+          authStatus={authStatus}
           error={error}
           password={password}
           setError={setError}
@@ -138,12 +215,14 @@ export default function AdminPage() {
 }
 
 function LoginCard({
+  authStatus,
   error,
   password,
   setError,
   setPassword,
   onSubmit,
 }: {
+  authStatus: string;
   error: string;
   password: string;
   setError: (value: string) => void;
@@ -151,7 +230,7 @@ function LoginCard({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <section className="mx-auto flex min-h-[calc(100vh-48px)] max-w-md items-center">
+    <section className="mx-auto flex min-h-[calc(100vh-96px)] max-w-md items-center">
       <form
         className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm"
         onSubmit={onSubmit}
@@ -161,6 +240,9 @@ function LoginCard({
           <h1 className="mt-2 text-2xl font-bold text-[var(--text)]">관리자 로그인</h1>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             개발자 운영 대시보드 접근을 위해 임시 관리자 비밀번호를 입력하세요.
+          </p>
+          <p className="mt-3 rounded-md border border-[var(--border)] bg-[var(--summary-bg)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">
+            {authStatus}
           </p>
         </div>
 
@@ -197,6 +279,36 @@ function LoginCard({
 }
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [healthError, setHealthError] = useState("");
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    fetch("/api/health", { signal: abortController.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Health check failed");
+        return response.json() as Promise<HealthResponse>;
+      })
+      .then(setHealth)
+      .catch((error: Error) => {
+        if (error.name !== "AbortError") {
+          setHealthError(error.message);
+        }
+      });
+
+    return () => abortController.abort();
+  }, []);
+
+  const healthItems = useMemo(() => {
+    if (!health) return [];
+
+    return Object.entries(health.env).map(([key, value]) => [
+      key,
+      value ? "Ready" : "Missing",
+    ]);
+  }, [health]);
+
   return (
     <section className="mx-auto flex max-w-7xl flex-col gap-5">
       <header className="rounded-lg border border-[var(--header-border)] bg-[var(--header-bg)] p-4 shadow-sm sm:p-5">
@@ -237,6 +349,22 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <section className="grid gap-5 lg:grid-cols-2">
         <KeyValueCard title="OpenAI 비용" items={openAiCost} />
         <KeyValueCard title="Render 상태" items={renderStatus} />
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <KeyValueCard
+          title="환경변수 상태"
+          items={healthItems.length > 0 ? healthItems : [["Status", "Loading"]]}
+        />
+        <KeyValueCard
+          title="Health API"
+          items={[
+            ["Status", health?.ok ? "OK" : healthError || "Loading"],
+            ["App", health?.app ?? "RuahNote"],
+            ["Version", health?.version ?? "0.1.0"],
+            ["Checked At", health?.checkedAt ?? "-"],
+          ]}
+        />
       </section>
     </section>
   );

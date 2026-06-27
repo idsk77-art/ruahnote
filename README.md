@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RuahNote
 
-## Getting Started
+RuahNote is a Next.js app for project scheduling, notes, and developer operations.
 
-First, run the development server:
+## Routes
+
+| Route | Purpose |
+|---|---|
+| `/` | Project schedule dashboard |
+| `/notes` | Notes CRUD and file attachment MVP |
+| `/login` | Supabase Auth login/signup/magic link |
+| `/admin` | Developer admin dashboard |
+| `/api/health` | Operational health check |
+
+## Local Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env.local` from `.env.example`.
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+OPENAI_API_KEY=
+```
 
-To learn more about Next.js, take a look at the following resources:
+`SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, and `OPENAI_API_KEY` must never be exposed in client code.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Apply migrations in order:
 
-## Deploy on Vercel
+1. `supabase/migrations/0001_initial_schema.sql`
+2. `supabase/migrations/0002_profiles_and_storage.sql`
+3. `supabase/migrations/0003_admin_roles.sql`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Until migrations are applied, `/notes` falls back to LocalStorage unless a valid authenticated Supabase session, tables, and Storage bucket are available.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+After a user signs up, promote the first admin locally:
+
+```bash
+npm.cmd run admin:set -- user@example.com
+```
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```
+
+On Windows PowerShell execution-policy restricted environments, use:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+```

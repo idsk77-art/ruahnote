@@ -1,24 +1,24 @@
 # RuahNote Docs
 
-RuahNote 프로젝트 문서 폴더입니다.  
-이 폴더는 기획, 개발 가이드, 설계, DB, API, UI, 회의록, 릴리즈 노트, 운영 문서를 관리합니다.
+This folder stores planning, development guides, architecture, DB, API, UI, release, and operations documents.
 
-## 핵심 문서
+## Key Documents
 
-| 문서 | 목적 |
+| Document | Purpose |
 |---|---|
-| `00_PROJECT_INDEX.md` | 프로젝트 전체 목차와 현재 상태 |
-| `00_STATUS_DASHBOARD.md` | 진행률, 완료/진행/대기 작업 관리 |
-| `00_ROADMAP.md` | v1.0까지의 개발 로드맵 |
-| `00_TODO.md` | 우선순위별 작업 목록 |
-| `00_DECISION_LOG.md` | 주요 의사결정 기록 |
-| `08_릴리즈노트/CHANGELOG.md` | 버전별 변경 이력 |
-| `02_개발가이드/01_개발명령어_및_배포가이드.md` | VS Code, GitHub, Render 배포 명령어 |
+| `00_PROJECT_INDEX.md` | Project index and feature status |
+| `00_STATUS_DASHBOARD.md` | Progress, completed work, active work, and risk tracking |
+| `00_ROADMAP.md` | v1.0 development roadmap |
+| `00_TODO.md` | Prioritized work list |
+| `00_DECISION_LOG.md` | Important decisions |
+| `02_개발가이드/04_Supabase_설정.md` | Supabase setup |
+| `03_설계/Database.md` | Database design |
+| `05_API/REST_API.md` | App API routes |
+| `08_릴리즈노트/CHANGELOG.md` | Version history |
 
-## 문서 관리 원칙
+## Document Rules
 
-1. 기능을 만들기 전에 문서를 먼저 갱신합니다.
-2. DB, API, UI 변경은 관련 문서에 반드시 기록합니다.
-3. 배포가 끝나면 CHANGELOG를 업데이트합니다.
-4. 큰 결정은 `00_DECISION_LOG.md`에 남깁니다.
-5. 회의나 작업 정리는 `07_회의록`에 날짜별로 저장합니다.
+1. Update documents when DB, API, UI, or deployment behavior changes.
+2. Keep `00_STATUS_DASHBOARD.md` aligned with actual implementation status.
+3. Record important technical decisions in `00_DECISION_LOG.md`.
+4. Update release notes after deployable feature batches.
