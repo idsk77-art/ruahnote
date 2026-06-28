@@ -916,6 +916,15 @@ export default function NoteManager() {
     setIsSaving(false);
   }
 
+  async function uploadNoteFiles(noteId: string, fileList: FileList | null) {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      await uploadNoteFile(noteId, file);
+    }
+  }
+
   async function openFile(file: NoteFile) {
     if (storageMode !== "supabase" || !supabase) {
       setMessage("로컬 모드에서는 파일 본문을 저장하지 않고 메타데이터만 표시합니다.");
@@ -1006,6 +1015,65 @@ export default function NoteManager() {
       ),
     );
     setMessage("OCR text appended to the note.");
+    setIsSaving(false);
+  }
+
+  async function exportImagesToPdf(note: Note) {
+    const imageFiles = filesByNote[note.id]?.filter(isImageFile) ?? [];
+
+    if (imageFiles.length === 0) {
+      setMessage("No image attachments to export.");
+      return;
+    }
+
+    if (storageMode !== "supabase" || !supabase) {
+      setMessage("PDF export requires uploaded Supabase image attachments.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const signedImages = [];
+    for (const file of imageFiles) {
+      const signedUrlResult = await supabase.storage
+        .from(storageBucket)
+        .createSignedUrl(file.filePath, 120);
+
+      if (signedUrlResult.error) {
+        setMessage(signedUrlResult.error.message);
+        setIsSaving(false);
+        return;
+      }
+
+      signedImages.push({
+        url: signedUrlResult.data.signedUrl,
+        mimeType: file.mimeType,
+      });
+    }
+
+    const response = await fetch("/api/pdf", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: note.title,
+        images: signedImages,
+      }),
+    });
+
+    if (!response.ok) {
+      setMessage("PDF export failed.");
+      setIsSaving(false);
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeStorageName(note.title || "ruahnote-scan")}.pdf`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setMessage("PDF exported.");
     setIsSaving(false);
   }
 
@@ -1349,8 +1417,10 @@ export default function NoteManager() {
                     editNote={editNote}
                     openFile={openFile}
                     appendOcrText={appendOcrText}
+                    exportImagesToPdf={exportImagesToPdf}
                     toggleFavorite={toggleFavorite}
                     uploadNoteFile={uploadNoteFile}
+                    uploadNoteFiles={uploadNoteFiles}
                   />
                 ))
               ) : (
@@ -1377,8 +1447,10 @@ function NoteCard({
   editNote,
   openFile,
   appendOcrText,
+  exportImagesToPdf,
   toggleFavorite,
   uploadNoteFile,
+  uploadNoteFiles,
 }: {
   category: NoteCategory | undefined;
   editingId: string | null;
@@ -1390,8 +1462,10 @@ function NoteCard({
   editNote: (note: Note) => void;
   openFile: (file: NoteFile) => void;
   appendOcrText: (note: Note, file: NoteFile) => void;
+  exportImagesToPdf: (note: Note) => void;
   toggleFavorite: (note: Note) => void;
   uploadNoteFile: (noteId: string, file: File | undefined) => void;
+  uploadNoteFiles: (noteId: string, fileList: FileList | null) => void;
 }) {
   return (
     <article
@@ -1413,6 +1487,16 @@ function NoteCard({
           </h3>
         </div>
         <div className="flex flex-wrap gap-2">
+          {files.some(isImageFile) ? (
+            <button
+              className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+              disabled={isSaving}
+              type="button"
+              onClick={() => exportImagesToPdf(note)}
+            >
+              PDF
+            </button>
+          ) : null}
           <button
             className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
             type="button"
@@ -1442,6 +1526,20 @@ function NoteCard({
               type="file"
               onChange={(event) => {
                 uploadNoteFile(note.id, event.currentTarget.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <label className="grid h-9 cursor-pointer place-items-center rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]">
+            Scan
+            <input
+              accept="image/*"
+              className="sr-only"
+              disabled={isSaving}
+              multiple
+              type="file"
+              onChange={(event) => {
+                uploadNoteFiles(note.id, event.currentTarget.files);
                 event.currentTarget.value = "";
               }}
             />
