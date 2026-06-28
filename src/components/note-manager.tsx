@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Note,
   NoteCategory,
+  NoteChecklistItem,
   NoteDraft,
   NoteFile,
   NoteSubject,
@@ -33,6 +34,7 @@ const emptyDraft: NoteDraft = {
   subjectId: "",
   title: "",
   contentPlain: "",
+  checklistItems: [],
   noteDate: today,
   sessionNumber: "",
 };
@@ -66,6 +68,13 @@ const defaultNotes: Note[] = [
     title: "RuahNote 노트 MVP",
     contentPlain:
       "로그인된 Supabase 세션이 있으면 노트와 파일을 DB/Storage에 저장하고, 설정 전에는 LocalStorage로 동작합니다.",
+    checklistItems: [
+      {
+        id: "welcome-checklist-1",
+        text: "Create a category and subject",
+        checked: false,
+      },
+    ],
     noteDate: today,
     sessionNumber: 1,
     isFavorite: false,
@@ -87,8 +96,53 @@ function normalizeDraft(draft: NoteDraft): NoteDraft {
     subjectId: draft.subjectId,
     title: draft.title.trim(),
     contentPlain: draft.contentPlain.trim(),
+    checklistItems: normalizeChecklist(draft.checklistItems),
     noteDate: draft.noteDate || today,
     sessionNumber: draft.sessionNumber.trim(),
+  };
+}
+
+function normalizeChecklist(items: NoteChecklistItem[]) {
+  return items
+    .map((item) => ({
+      id: item.id || createId(),
+      text: item.text.trim(),
+      checked: Boolean(item.checked),
+    }))
+    .filter((item) => item.text);
+}
+
+function readChecklist(contentJson: unknown): NoteChecklistItem[] {
+  if (
+    !contentJson ||
+    typeof contentJson !== "object" ||
+    !("checklistItems" in contentJson)
+  ) {
+    return [];
+  }
+
+  const checklistItems = (contentJson as { checklistItems?: unknown }).checklistItems;
+  if (!Array.isArray(checklistItems)) return [];
+
+  return normalizeChecklist(
+    checklistItems.map((item) => {
+      if (!item || typeof item !== "object") {
+        return { id: createId(), text: "", checked: false };
+      }
+
+      const candidate = item as Partial<NoteChecklistItem>;
+      return {
+        id: typeof candidate.id === "string" ? candidate.id : createId(),
+        text: typeof candidate.text === "string" ? candidate.text : "",
+        checked: Boolean(candidate.checked),
+      };
+    }),
+  );
+}
+
+function noteContentJson(checklistItems: NoteChecklistItem[]) {
+  return {
+    checklistItems: normalizeChecklist(checklistItems),
   };
 }
 
@@ -98,6 +152,7 @@ function mapSupabaseNote(row: SupabaseNoteRow): Note {
     subjectId: row.subject_id,
     title: row.title,
     contentPlain: row.content_plain,
+    checklistItems: readChecklist(row.content_json),
     noteDate: row.note_date,
     sessionNumber: row.session_number,
     isFavorite: row.is_favorite,
@@ -132,6 +187,7 @@ function normalizeLocalNotes(notes: Note[]) {
   return notes.map((note) => ({
     ...note,
     subjectId: note.subjectId ?? "general-subject",
+    checklistItems: normalizeChecklist(note.checklistItems ?? []),
     sessionNumber: note.sessionNumber ?? null,
     isFavorite: note.isFavorite ?? false,
   }));
@@ -402,11 +458,13 @@ export default function NoteManager() {
     return notes.filter((note) =>
       `${note.title} ${note.contentPlain} ${note.noteDate} ${
         subjects.find((subject) => subject.id === note.subjectId)?.title ?? ""
-      }`
+      } ${(filesByNote[note.id] ?? [])
+        .map((file) => `${file.fileName} ${file.mimeType ?? ""}`)
+        .join(" ")}`
         .toLowerCase()
         .includes(cleanQuery),
     );
-  }, [notes, query, subjects]);
+  }, [filesByNote, notes, query, subjects]);
 
   const subjectById = useMemo(
     () => new Map(subjects.map((subject) => [subject.id, subject])),
@@ -468,7 +526,7 @@ export default function NoteManager() {
           subject_id: nextDraft.subjectId || null,
           title: nextDraft.title,
           content_plain: nextDraft.contentPlain,
-          content_json: {},
+          content_json: noteContentJson(nextDraft.checklistItems),
           note_date: nextDraft.noteDate,
           session_number: parseSessionNumber(nextDraft.sessionNumber),
         })
@@ -498,7 +556,7 @@ export default function NoteManager() {
         subject_id: nextDraft.subjectId || null,
         title: nextDraft.title,
         content_plain: nextDraft.contentPlain,
-        content_json: {},
+        content_json: noteContentJson(nextDraft.checklistItems),
         note_date: nextDraft.noteDate,
         session_number: parseSessionNumber(nextDraft.sessionNumber),
         is_favorite: false,
@@ -527,6 +585,7 @@ export default function NoteManager() {
                 subjectId: nextDraft.subjectId || null,
                 title: nextDraft.title,
                 contentPlain: nextDraft.contentPlain,
+                checklistItems: nextDraft.checklistItems,
                 noteDate: nextDraft.noteDate,
                 sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
                 updatedAt: now,
@@ -544,6 +603,7 @@ export default function NoteManager() {
         subjectId: nextDraft.subjectId || null,
         title: nextDraft.title,
         contentPlain: nextDraft.contentPlain,
+        checklistItems: nextDraft.checklistItems,
         noteDate: nextDraft.noteDate,
         sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
         isFavorite: false,
@@ -561,10 +621,42 @@ export default function NoteManager() {
       subjectId: note.subjectId ?? "",
       title: note.title,
       contentPlain: note.contentPlain,
+      checklistItems: note.checklistItems,
       noteDate: note.noteDate,
       sessionNumber: note.sessionNumber ? String(note.sessionNumber) : "",
     });
     setMessage("");
+  }
+
+  function addChecklistItem() {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      checklistItems: [
+        ...currentDraft.checklistItems,
+        { id: createId(), text: "", checked: false },
+      ],
+    }));
+  }
+
+  function updateChecklistItem(
+    itemId: string,
+    updates: Partial<NoteChecklistItem>,
+  ) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      checklistItems: currentDraft.checklistItems.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item,
+      ),
+    }));
+  }
+
+  function removeChecklistItem(itemId: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      checklistItems: currentDraft.checklistItems.filter(
+        (item) => item.id !== itemId,
+      ),
+    }));
   }
 
   async function createCategory() {
@@ -1074,6 +1166,58 @@ export default function NoteManager() {
               />
             </label>
 
+            <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold text-[var(--text)]">Checklist</h3>
+                <button
+                  className="h-8 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+                  type="button"
+                  onClick={addChecklistItem}
+                >
+                  Add item
+                </button>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                {draft.checklistItems.length > 0 ? (
+                  draft.checklistItems.map((item) => (
+                    <div className="flex items-center gap-2" key={item.id}>
+                      <input
+                        checked={item.checked}
+                        type="checkbox"
+                        onChange={(event) =>
+                          updateChecklistItem(item.id, {
+                            checked: event.target.checked,
+                          })
+                        }
+                      />
+                      <input
+                        className="h-9 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                        placeholder="Checklist item"
+                        value={item.text}
+                        onChange={(event) =>
+                          updateChecklistItem(item.id, {
+                            text: event.target.value,
+                          })
+                        }
+                      />
+                      <button
+                        className="h-9 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 text-xs font-bold text-[var(--danger-text)] transition hover:bg-[var(--danger-hover)]"
+                        type="button"
+                        onClick={() => removeChecklistItem(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm font-semibold text-[var(--muted)]">
+                    Add checklist items for todos, readings, or follow-ups.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {message ? (
               <p className="mt-4 rounded-md border border-[var(--border)] bg-[var(--summary-bg)] px-3 py-2 text-sm font-semibold text-[var(--soft-text)]">
                 {message}
@@ -1226,6 +1370,31 @@ function NoteCard({
       <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-[var(--soft-text)]">
         {note.contentPlain || "내용 없음"}
       </p>
+
+      {note.checklistItems.length > 0 ? (
+        <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3">
+          <p className="text-xs font-bold text-[var(--muted)]">
+            Checklist{" "}
+            {note.checklistItems.filter((item) => item.checked).length}/
+            {note.checklistItems.length}
+          </p>
+          <ul className="mt-2 space-y-1">
+            {note.checklistItems.slice(0, 4).map((item) => (
+              <li
+                className="flex gap-2 text-sm leading-5 text-[var(--soft-text)]"
+                key={item.id}
+              >
+                <span className="shrink-0 font-bold">
+                  {item.checked ? "[x]" : "[ ]"}
+                </span>
+                <span className={item.checked ? "line-through opacity-70" : ""}>
+                  {item.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {files.length > 0 ? (
         <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3">

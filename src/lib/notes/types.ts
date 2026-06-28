@@ -3,6 +3,7 @@ export type Note = {
   subjectId: string | null;
   title: string;
   contentPlain: string;
+  checklistItems: NoteChecklistItem[];
   noteDate: string;
   sessionNumber: number | null;
   isFavorite: boolean;
@@ -14,8 +15,15 @@ export type NoteDraft = {
   subjectId: string;
   title: string;
   contentPlain: string;
+  checklistItems: NoteChecklistItem[];
   noteDate: string;
   sessionNumber: string;
+};
+
+export type NoteChecklistItem = {
+  id: string;
+  text: string;
+  checked: boolean;
 };
 
 export type NoteCategory = {

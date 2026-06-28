@@ -11,7 +11,7 @@
 - [ ] 실제 브라우저에서 Notes DB CRUD 검증
 - [ ] 실제 브라우저에서 파일 업로드 검증
 - [ ] 실제 브라우저에서 category > subject > note 흐름 검증
-- [ ] 노트 에디터 본문/체크리스트 UX 구현
+- [ ] 첨부/검색 브라우저 실사용 검증
 
 ## Medium Priority
 
@@ -27,6 +27,9 @@
 - [x] Notes subject assignment UI 구현
 - [x] Notes 날짜/회차/즐겨찾기 메타데이터 구현
 - [x] Supabase migration 0004 적용
+- [x] 노트 에디터 본문/체크리스트 UX 구현
+- [x] Notes content_json 체크리스트 동기화
+- [x] 첨부 파일명 검색 보강
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증
