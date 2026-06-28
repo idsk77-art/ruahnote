@@ -1,15 +1,13 @@
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import process from "node:process";
 
+const require = createRequire(import.meta.url);
 const port = process.env.PORT || "3000";
-const nextBin =
-  process.platform === "win32"
-    ? "node_modules/.bin/next.cmd"
-    : "node_modules/.bin/next";
+const nextBin = require.resolve("next/dist/bin/next");
 
-const child = spawn(nextBin, ["start", "-H", "0.0.0.0", "-p", port], {
+const child = spawn(process.execPath, [nextBin, "start", "-H", "0.0.0.0", "-p", port], {
   stdio: "inherit",
-  shell: process.platform === "win32",
 });
 
 child.on("exit", (code, signal) => {
