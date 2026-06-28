@@ -21,4 +21,4 @@
 
 ### Deployment
 
-- Production URL: `https://ruahnote.onrender.com`
+- Production URL: `https://ruahnote-bp6m.onrender.com`

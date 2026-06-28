@@ -50,7 +50,7 @@ Your service is live
 운영 URL은 다음과 같습니다.
 
 ```text
-https://ruahnote.onrender.com
+https://ruahnote-bp6m.onrender.com
 ```
 
 로컬에서 운영 응답을 확인합니다.
@@ -65,7 +65,7 @@ npm.cmd run deploy:check
 
 `x-render-routing=no-server`가 보이면 앱 라우트 문제가 아니라 Render 라우팅 또는 서비스 연결 문제일 가능성이 큽니다.
 
-1. Render 서비스의 Primary URL이 `https://ruahnote.onrender.com`인지 확인합니다.
+1. Render 서비스의 Primary URL이 `https://ruahnote-bp6m.onrender.com`인지 확인합니다.
 2. Repository가 `idsk77-art/ruahnote`, Branch가 `main`인지 확인합니다.
 3. Latest deploy가 최신 Git commit을 포함하는지 확인합니다.
 4. Build Command가 `npm ci && npm run build`인지 확인합니다.

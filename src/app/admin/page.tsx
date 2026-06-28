@@ -44,7 +44,7 @@ const summaryItems = [
   { label: "프로젝트명", value: "RuahNote v1.0" },
   { label: "현재 버전", value: "v0.1.0" },
   { label: "배포 상태", value: "Live" },
-  { label: "운영 URL", value: "https://ruahnote.onrender.com" },
+  { label: "운영 URL", value: "https://ruahnote-bp6m.onrender.com" },
   { label: "GitHub", value: "idsk77-art/ruahnote" },
 ];
 

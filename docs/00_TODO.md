@@ -2,13 +2,8 @@
 
 ## High Priority
 
-- [ ] Render Dashboard에서 latest deploy logs 확인
-- [ ] Render Primary URL이 `https://ruahnote.onrender.com`인지 확인
-- [ ] Render Repository/Branch가 `idsk77-art/ruahnote` / `main`인지 확인
-- [ ] Render Build Command를 `npm ci && npm run build`로 설정
-- [ ] Render Start Command를 `npm run render:start`로 설정
-- [ ] Render Manual Deploy 실행
-- [ ] `npm.cmd run deploy:check`가 200으로 통과하는지 확인
+- [x] Render Primary URL이 `https://ruahnote-bp6m.onrender.com`인지 확인
+- [x] `npm.cmd run deploy:check`가 200으로 통과하는지 확인
 - [ ] Supabase 환경변수를 Render에 등록
 - [ ] Render `/api/health` 환경변수 상태 확인
 - [ ] 회원가입 후 첫 admin 사용자 지정

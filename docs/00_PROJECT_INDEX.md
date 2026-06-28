@@ -61,7 +61,7 @@ docs/
 ## 5. 현재 운영 주소
 
 ```text
-https://ruahnote.onrender.com
+https://ruahnote-bp6m.onrender.com
 ```
 
 ## 6. GitHub 저장소

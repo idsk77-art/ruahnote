@@ -1,6 +1,6 @@
 import process from "node:process";
 
-const baseUrl = (process.argv[2] ?? "https://ruahnote.onrender.com").replace(/\/$/, "");
+const baseUrl = (process.argv[2] ?? "https://ruahnote-bp6m.onrender.com").replace(/\/$/, "");
 const paths = ["/", "/api/health"];
 
 async function checkPath(path) {
