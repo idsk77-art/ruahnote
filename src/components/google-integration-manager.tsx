@@ -72,10 +72,18 @@ function readableError(error: unknown, fallback: string) {
   return JSON.stringify(error);
 }
 
+function firstUrl(value: string) {
+  return value.match(/https?:\/\/[^\s]+/)?.[0] ?? null;
+}
+
 function StatusMessage({
+  actionHref,
+  actionLabel,
   tone = "danger",
   children,
 }: {
+  actionHref?: string | null;
+  actionLabel?: string;
   tone?: "danger" | "success";
   children: string;
 }) {
@@ -84,7 +92,21 @@ function StatusMessage({
       ? "mt-4 rounded-md border border-[var(--primary)] bg-[var(--control-bg)] px-3 py-2 text-sm font-semibold text-[var(--text)]"
       : "mt-4 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm font-semibold text-[var(--danger-text)]";
 
-  return <p className={className}>{children}</p>;
+  return (
+    <div className={className}>
+      <p className="break-words">{children}</p>
+      {actionHref ? (
+        <a
+          className="mt-3 inline-flex h-9 items-center rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+          href={actionHref}
+          rel="noreferrer"
+          target="_blank"
+        >
+          {actionLabel ?? "설정 열기"}
+        </a>
+      ) : null}
+    </div>
+  );
 }
 
 export default function GoogleIntegrationManager() {
@@ -561,6 +583,8 @@ export default function GoogleIntegrationManager() {
 
             {contactMessage ? (
               <StatusMessage
+                actionHref={firstUrl(contactMessage)}
+                actionLabel="People API 설정 열기"
                 tone={contactMessage.includes("오류") ? "danger" : "success"}
               >
                 {contactMessage}
@@ -625,6 +649,8 @@ export default function GoogleIntegrationManager() {
 
             {gmailMessage ? (
               <StatusMessage
+                actionHref={firstUrl(gmailMessage)}
+                actionLabel="Gmail API 설정 열기"
                 tone={gmailMessage.includes("오류") ? "danger" : "success"}
               >
                 {gmailMessage}

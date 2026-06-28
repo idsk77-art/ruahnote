@@ -76,6 +76,8 @@
 - [x] Gmail 상세 본문 조회 route
 - [x] Gmail 초안 생성 route
 - [x] Gmail 목록/상세/초안 생성 UI
+- [x] Google API 비활성 오류 섹션별 표시
+- [x] Google API 활성화 링크 UI
 
 ## 진행 중
 
@@ -134,6 +136,7 @@
 | Google Calendar 조회 | 전체 캘린더 목록 및 선택 조회 구현됨 |
 | Google Contacts 조회 | route 및 검색 UI 구현됨 |
 | Gmail 조회/작성 | 목록/검색/상세/초안 생성 route 및 UI 구현됨 |
+| Google 연동 오류 표시 | Contacts/Gmail 섹션별 메시지 및 API 활성화 링크 구현됨 |
 
 ## 다음 작업
 
@@ -165,6 +168,7 @@
 | OpenAI API 미설정 | 현재 health check에서 OpenAI는 missing 상태 | OCR/STT/AI 기능 시작 전 등록 |
 | Google OAuth 미설정 | Client ID/Secret과 승인된 redirect URI가 아직 없음 | Google Cloud 설정 후 OAuth 실사용 검증 |
 | Google token 암호화 키 | 토큰 저장에는 `GOOGLE_TOKEN_ENCRYPTION_KEY`가 필요 | Render 환경변수 등록 |
+| People API 사용 설정 | Google Cloud에서 People API가 비활성 상태면 연락처 조회가 실패함 | Google Cloud API 라이브러리에서 People API 사용 설정 |
 | Gmail API 사용 설정 | Google Cloud에서 Gmail API가 비활성 상태면 Gmail 조회/초안 생성이 실패함 | Google Cloud API 라이브러리에서 Gmail API 사용 설정 |
 
 ## 최근 배포/작업
@@ -181,6 +185,7 @@
 | 2026-06-28 | current | Google 전체 캘린더/선택 조회 UI 추가 |
 | 2026-06-28 | current | Google Contacts 조회 route 및 검색 UI 추가 |
 | 2026-06-28 | current | Gmail 목록/상세/초안 생성 route 및 UI 추가 |
+| 2026-06-28 | current | Google API 비활성 오류별 설정 링크 추가 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |
