@@ -19,6 +19,27 @@ type CalendarEvent = {
   start?: { dateTime?: string; date?: string };
 };
 
+function readableError(error: unknown, fallback: string) {
+  if (typeof error === "string") return error;
+  if (!error || typeof error !== "object") return fallback;
+
+  const candidate = error as {
+    error?: unknown;
+    message?: unknown;
+    error_description?: unknown;
+  };
+
+  if (typeof candidate.message === "string") return candidate.message;
+  if (typeof candidate.error_description === "string") {
+    return candidate.error_description;
+  }
+  if (candidate.error && candidate.error !== error) {
+    return readableError(candidate.error, fallback);
+  }
+
+  return JSON.stringify(error);
+}
+
 export default function GoogleIntegrationManager() {
   const isSupabaseConfigured = hasBrowserSupabaseConfig();
   const supabase = useMemo(
@@ -87,11 +108,11 @@ export default function GoogleIntegrationManager() {
       | null;
 
     if (!response.ok) {
-      setMessage(
-        typeof dataJson?.error === "string"
-          ? dataJson.error
-          : "Google Calendar 조회를 완료하지 못했습니다.",
+      const errorMessage = readableError(
+        dataJson?.error,
+        "Google Calendar 조회를 완료하지 못했습니다.",
       );
+      setMessage(`Google Calendar 오류: ${errorMessage}`);
       setIsLoading(false);
       return;
     }
