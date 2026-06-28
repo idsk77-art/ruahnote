@@ -15,6 +15,12 @@
 - [ ] OpenAI API key 운영 등록 후 OCR 실사용 검증
 - [ ] 스캔센터/PDF 브라우저 실사용 검증
 - [ ] 과제 관리 브라우저 실사용 검증
+- [ ] 과제 후보/중복 통합 브라우저 실사용 검증
+- [ ] 녹음 기반 브라우저 실사용 검증
+- [ ] STT/AI 강의노트 OpenAI key 실사용 검증
+- [ ] Google OAuth Client ID/Secret 등록
+- [ ] Google OAuth 승인 URL 실사용 검증
+- [ ] Google token 암호화 저장 방식 확정
 
 ## Medium Priority
 
@@ -45,6 +51,21 @@
 - [x] 과제 LocalStorage/Supabase CRUD 경로 구현
 - [x] 과제 상태 칸반/완료 보관/마감 요약 구현
 - [x] 과제 관련 노트 연결 UI 구현
+- [x] 과제 후보 수동 등록 구현
+- [x] 과제 후보 중복 통합 UI 구현
+- [x] 후보 확정 과제 전환 구현
+- [x] 과제 마감 임박/기한 초과 대시보드 구현
+- [x] 노트 오디오 첨부 업로드 구현
+- [x] Supabase 오디오 signed URL 재생 UI 구현
+- [x] 녹음 타임라인 메모 수동 추가 구현
+- [x] 녹음 메모 content_json 저장 구현
+- [x] `/api/transcribe` OpenAI STT route 구현
+- [x] `/api/lecture-note` AI 강의노트 route 구현
+- [x] 노트 오디오 STT/AI 실행 버튼 구현
+- [x] STT/AI 결과 노트 본문 반영 및 과제 후보 저장 구현
+- [x] Google OAuth 승인 URL 생성 route 구현
+- [x] Google OAuth callback code 교환 route 구현
+- [x] Google 연동 설정 화면 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증

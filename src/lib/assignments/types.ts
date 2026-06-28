@@ -19,3 +19,19 @@ export type AssignmentDraft = {
   status: AssignmentStatus;
   priority: AssignmentPriority;
 };
+
+export type AssignmentCandidate = {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  priority: AssignmentPriority;
+  source: string;
+  createdAt: string;
+};
+
+export type AssignmentCandidateDraft = {
+  title: string;
+  dueDate: string;
+  priority: AssignmentPriority;
+  source: string;
+};

@@ -4,6 +4,7 @@ export type Note = {
   title: string;
   contentPlain: string;
   checklistItems: NoteChecklistItem[];
+  recordingMemos: NoteRecordingMemo[];
   noteDate: string;
   sessionNumber: number | null;
   isFavorite: boolean;
@@ -18,6 +19,14 @@ export type NoteDraft = {
   checklistItems: NoteChecklistItem[];
   noteDate: string;
   sessionNumber: string;
+};
+
+export type NoteRecordingMemo = {
+  id: string;
+  fileId: string;
+  timeLabel: string;
+  text: string;
+  createdAt: string;
 };
 
 export type NoteChecklistItem = {

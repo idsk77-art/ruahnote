@@ -15,9 +15,15 @@ const requiredFiles = [
   "src/app/api/health/route.ts",
   "src/app/api/ocr/route.ts",
   "src/app/api/pdf/route.ts",
+  "src/app/api/transcribe/route.ts",
+  "src/app/api/lecture-note/route.ts",
+  "src/app/api/google/oauth-url/route.ts",
+  "src/app/api/google/oauth-callback/route.ts",
   "src/app/admin/page.tsx",
   "src/app/assignments/page.tsx",
+  "src/app/integrations/page.tsx",
   "src/components/assignment-manager.tsx",
+  "src/components/google-integration-manager.tsx",
   "src/lib/assignments/types.ts",
 ];
 
@@ -28,6 +34,12 @@ const requiredEnvExampleKeys = [
   "DATABASE_POOLER_URL",
   "DATABASE_URL",
   "OPENAI_API_KEY",
+  "OPENAI_STT_MODEL",
+  "OPENAI_NOTE_MODEL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_REDIRECT_URI",
+  "GOOGLE_TOKEN_ENCRYPTION_KEY",
 ];
 
 const requiredPackageScripts = [

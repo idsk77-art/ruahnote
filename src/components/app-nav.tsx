@@ -4,6 +4,7 @@ const navItems = [
   { href: "/", label: "Schedule" },
   { href: "/notes", label: "Notes" },
   { href: "/assignments", label: "Assignments" },
+  { href: "/integrations", label: "Integrations" },
   { href: "/login", label: "Login" },
   { href: "/admin", label: "Admin" },
 ];

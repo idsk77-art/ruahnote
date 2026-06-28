@@ -9,6 +9,7 @@ import type {
   NoteChecklistItem,
   NoteDraft,
   NoteFile,
+  NoteRecordingMemo,
   NoteSubject,
 } from "@/lib/notes/types";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -19,6 +20,7 @@ const noteStorageKey = "ruahnote.notes.v1";
 const fileStorageKey = "ruahnote.note-files.v1";
 const categoryStorageKey = "ruahnote.note-categories.v1";
 const subjectStorageKey = "ruahnote.note-subjects.v1";
+const assignmentCandidateStorageKey = "ruahnote.assignment-candidates.v1";
 const storageBucket = "note-files";
 
 type StorageMode = "local" | "supabase";
@@ -27,15 +29,28 @@ type SupabaseNoteRow = Database["public"]["Tables"]["notes"]["Row"];
 type SupabaseFileRow = Database["public"]["Tables"]["files"]["Row"];
 type SupabaseCategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 type SupabaseSubjectRow = Database["public"]["Tables"]["subjects"]["Row"];
+type AiLectureNote = {
+  summary: string;
+  keywords: string[];
+  assignments: string[];
+};
+type StoredAssignmentCandidate = {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  priority: "high" | "medium" | "low";
+  source: string;
+  createdAt: string;
+};
 
 const today = new Date().toISOString().slice(0, 10);
 
 const emptyDraft: NoteDraft = {
-  subjectId: "",
-  title: "",
-  contentPlain: "",
-  checklistItems: [],
-  noteDate: today,
+    subjectId: "",
+    title: "",
+    contentPlain: "",
+    checklistItems: [],
+    noteDate: today,
   sessionNumber: "",
 };
 
@@ -75,6 +90,7 @@ const defaultNotes: Note[] = [
         checked: false,
       },
     ],
+    recordingMemos: [],
     noteDate: today,
     sessionNumber: 1,
     isFavorite: false,
@@ -140,9 +156,52 @@ function readChecklist(contentJson: unknown): NoteChecklistItem[] {
   );
 }
 
-function noteContentJson(checklistItems: NoteChecklistItem[]) {
+function readRecordingMemos(contentJson: unknown): NoteRecordingMemo[] {
+  if (
+    !contentJson ||
+    typeof contentJson !== "object" ||
+    !("recordingMemos" in contentJson)
+  ) {
+    return [];
+  }
+
+  const recordingMemos = (contentJson as { recordingMemos?: unknown })
+    .recordingMemos;
+  if (!Array.isArray(recordingMemos)) return [];
+
+  return recordingMemos
+    .map((memo) => {
+      if (!memo || typeof memo !== "object") {
+        return null;
+      }
+
+      const candidate = memo as Partial<NoteRecordingMemo>;
+      const fileId = typeof candidate.fileId === "string" ? candidate.fileId : "";
+      const text = typeof candidate.text === "string" ? candidate.text.trim() : "";
+      if (!fileId || !text) return null;
+
+      return {
+        id: typeof candidate.id === "string" ? candidate.id : createId(),
+        fileId,
+        timeLabel:
+          typeof candidate.timeLabel === "string" ? candidate.timeLabel.trim() : "",
+        text,
+        createdAt:
+          typeof candidate.createdAt === "string"
+            ? candidate.createdAt
+            : new Date().toISOString(),
+      };
+    })
+    .filter((memo): memo is NoteRecordingMemo => Boolean(memo));
+}
+
+function noteContentJson(
+  checklistItems: NoteChecklistItem[],
+  recordingMemos: NoteRecordingMemo[] = [],
+) {
   return {
     checklistItems: normalizeChecklist(checklistItems),
+    recordingMemos,
   };
 }
 
@@ -153,6 +212,7 @@ function mapSupabaseNote(row: SupabaseNoteRow): Note {
     title: row.title,
     contentPlain: row.content_plain,
     checklistItems: readChecklist(row.content_json),
+    recordingMemos: readRecordingMemos(row.content_json),
     noteDate: row.note_date,
     sessionNumber: row.session_number,
     isFavorite: row.is_favorite,
@@ -188,6 +248,7 @@ function normalizeLocalNotes(notes: Note[]) {
     ...note,
     subjectId: note.subjectId ?? "general-subject",
     checklistItems: normalizeChecklist(note.checklistItems ?? []),
+    recordingMemos: note.recordingMemos ?? [],
     sessionNumber: note.sessionNumber ?? null,
     isFavorite: note.isFavorite ?? false,
   }));
@@ -253,6 +314,17 @@ function readLocalFiles() {
   }
 }
 
+function readAssignmentCandidates() {
+  const stored = window.localStorage.getItem(assignmentCandidateStorageKey);
+  if (!stored) return [];
+
+  try {
+    return JSON.parse(stored) as StoredAssignmentCandidate[];
+  } catch {
+    return [];
+  }
+}
+
 function groupFiles(files: NoteFile[]) {
   return files.reduce<Record<string, NoteFile[]>>((grouped, file) => {
     if (!file.noteId) return grouped;
@@ -270,6 +342,10 @@ function readableSize(sizeBytes: number | null) {
 
 function isImageFile(file: NoteFile) {
   return file.mimeType?.startsWith("image/") ?? false;
+}
+
+function isAudioFile(file: NoteFile) {
+  return file.mimeType?.startsWith("audio/") ?? false;
 }
 
 function safeStorageName(fileName: string) {
@@ -302,6 +378,9 @@ export default function NoteManager() {
   const [categories, setCategories] = useState<NoteCategory[]>(defaultCategories);
   const [subjects, setSubjects] = useState<NoteSubject[]>(defaultSubjects);
   const [filesByNote, setFilesByNote] = useState<Record<string, NoteFile[]>>({});
+  const [audioUrlsByFileId, setAudioUrlsByFileId] = useState<Record<string, string>>(
+    {},
+  );
   const [draft, setDraft] = useState<NoteDraft>(emptyDraft);
   const [categoryTitle, setCategoryTitle] = useState("");
   const [subjectDraft, setSubjectDraft] = useState({
@@ -530,7 +609,10 @@ export default function NoteManager() {
           subject_id: nextDraft.subjectId || null,
           title: nextDraft.title,
           content_plain: nextDraft.contentPlain,
-          content_json: noteContentJson(nextDraft.checklistItems),
+          content_json: noteContentJson(
+            nextDraft.checklistItems,
+            selectedNote?.recordingMemos ?? [],
+          ),
           note_date: nextDraft.noteDate,
           session_number: parseSessionNumber(nextDraft.sessionNumber),
         })
@@ -590,6 +672,7 @@ export default function NoteManager() {
                 title: nextDraft.title,
                 contentPlain: nextDraft.contentPlain,
                 checklistItems: nextDraft.checklistItems,
+                recordingMemos: note.recordingMemos,
                 noteDate: nextDraft.noteDate,
                 sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
                 updatedAt: now,
@@ -608,6 +691,7 @@ export default function NoteManager() {
         title: nextDraft.title,
         contentPlain: nextDraft.contentPlain,
         checklistItems: nextDraft.checklistItems,
+        recordingMemos: [],
         noteDate: nextDraft.noteDate,
         sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
         isFavorite: false,
@@ -941,6 +1025,222 @@ export default function NoteManager() {
     }
 
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function loadAudioFile(file: NoteFile) {
+    if (!isAudioFile(file)) {
+      setMessage("Audio player only supports audio attachments.");
+      return;
+    }
+
+    if (storageMode !== "supabase" || !supabase) {
+      setMessage("로컬 모드에서는 오디오 파일 본문을 저장하지 않아 재생할 수 없습니다.");
+      return;
+    }
+
+    const { data, error } = await supabase.storage
+      .from(storageBucket)
+      .createSignedUrl(file.filePath, 60 * 10);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setAudioUrlsByFileId((currentUrls) => ({
+      ...currentUrls,
+      [file.id]: data.signedUrl,
+    }));
+  }
+
+  async function addRecordingMemo(
+    note: Note,
+    file: NoteFile,
+    timeLabel: string,
+    text: string,
+  ) {
+    const cleanText = text.trim();
+    if (!cleanText) {
+      setMessage("타임라인 메모 내용을 입력하세요.");
+      return;
+    }
+
+    const nextMemos: NoteRecordingMemo[] = [
+      ...note.recordingMemos,
+      {
+        id: createId(),
+        fileId: file.id,
+        timeLabel: timeLabel.trim(),
+        text: cleanText,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    if (storageMode === "supabase" && supabase && userId) {
+      const { data, error } = await supabase
+        .from("notes")
+        .update({
+          content_json: noteContentJson(note.checklistItems, nextMemos),
+        })
+        .eq("id", note.id)
+        .eq("user_id", userId)
+        .select("*")
+        .single();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      setNotes((currentNotes) =>
+        currentNotes.map((currentNote) =>
+          currentNote.id === note.id ? mapSupabaseNote(data) : currentNote,
+        ),
+      );
+    } else {
+      setNotes((currentNotes) =>
+        currentNotes.map((currentNote) =>
+          currentNote.id === note.id
+            ? { ...currentNote, recordingMemos: nextMemos }
+            : currentNote,
+        ),
+      );
+    }
+
+    setMessage("녹음 타임라인 메모를 추가했습니다.");
+  }
+
+  async function generateAiLectureNote(note: Note, file: NoteFile) {
+    if (!isAudioFile(file)) {
+      setMessage("STT only supports audio attachments.");
+      return;
+    }
+
+    if (storageMode !== "supabase" || !supabase || !userId) {
+      setMessage("STT/AI requires a logged-in Supabase session and uploaded audio.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const signedUrlResult = await supabase.storage
+      .from(storageBucket)
+      .createSignedUrl(file.filePath, 60 * 10);
+
+    if (signedUrlResult.error) {
+      setMessage(signedUrlResult.error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    setAudioUrlsByFileId((currentUrls) => ({
+      ...currentUrls,
+      [file.id]: signedUrlResult.data.signedUrl,
+    }));
+
+    const transcribeResponse = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        audioUrl: signedUrlResult.data.signedUrl,
+        fileName: file.fileName,
+      }),
+    });
+    const transcribeData = (await transcribeResponse.json().catch(() => null)) as
+      | { text?: string; error?: unknown }
+      | null;
+
+    if (!transcribeResponse.ok || !transcribeData?.text) {
+      setMessage(
+        typeof transcribeData?.error === "string"
+          ? transcribeData.error
+          : "STT request failed.",
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    const lectureResponse = await fetch("/api/lecture-note", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: note.title,
+        transcript: transcribeData.text,
+      }),
+    });
+    const lectureData = (await lectureResponse.json().catch(() => null)) as
+      | (AiLectureNote & { error?: unknown })
+      | null;
+
+    if (!lectureResponse.ok || !lectureData) {
+      setMessage(
+        typeof lectureData?.error === "string"
+          ? lectureData.error
+          : "AI lecture note request failed.",
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    const aiBlock = [
+      `STT/AI: ${file.fileName}`,
+      "",
+      "전사문",
+      transcribeData.text,
+      "",
+      "요약",
+      lectureData.summary,
+      "",
+      `키워드: ${lectureData.keywords.join(", ") || "-"}`,
+      "",
+      "과제 후보",
+      ...(lectureData.assignments.length > 0
+        ? lectureData.assignments.map((assignment) => `- ${assignment}`)
+        : ["- 없음"]),
+    ].join("\n");
+    const nextContent = [note.contentPlain, aiBlock].filter(Boolean).join("\n\n");
+
+    const { data, error } = await supabase
+      .from("notes")
+      .update({ content_plain: nextContent })
+      .eq("id", note.id)
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    setNotes((currentNotes) =>
+      currentNotes.map((currentNote) =>
+        currentNote.id === note.id ? mapSupabaseNote(data) : currentNote,
+      ),
+    );
+
+    if (lectureData.assignments.length > 0) {
+      const now = new Date().toISOString();
+      const nextCandidates = [
+        ...lectureData.assignments.map((assignment) => ({
+          id: createId(),
+          title: assignment,
+          dueDate: null,
+          priority: "medium" as const,
+          source: `${note.title} / ${file.fileName}`,
+          createdAt: now,
+        })),
+        ...readAssignmentCandidates(),
+      ];
+      window.localStorage.setItem(
+        assignmentCandidateStorageKey,
+        JSON.stringify(nextCandidates),
+      );
+    }
+
+    setMessage("STT/AI lecture note appended and assignment candidates saved.");
+    setIsSaving(false);
   }
 
   async function appendOcrText(note: Note, file: NoteFile) {
@@ -1416,8 +1716,12 @@ export default function NoteManager() {
                     deleteNote={deleteNote}
                     editNote={editNote}
                     openFile={openFile}
+                    audioUrlsByFileId={audioUrlsByFileId}
                     appendOcrText={appendOcrText}
+                    addRecordingMemo={addRecordingMemo}
                     exportImagesToPdf={exportImagesToPdf}
+                    generateAiLectureNote={generateAiLectureNote}
+                    loadAudioFile={loadAudioFile}
                     toggleFavorite={toggleFavorite}
                     uploadNoteFile={uploadNoteFile}
                     uploadNoteFiles={uploadNoteFiles}
@@ -1446,8 +1750,12 @@ function NoteCard({
   deleteNote,
   editNote,
   openFile,
+  audioUrlsByFileId,
   appendOcrText,
+  addRecordingMemo,
   exportImagesToPdf,
+  generateAiLectureNote,
+  loadAudioFile,
   toggleFavorite,
   uploadNoteFile,
   uploadNoteFiles,
@@ -1461,8 +1769,17 @@ function NoteCard({
   deleteNote: (noteId: string) => void;
   editNote: (note: Note) => void;
   openFile: (file: NoteFile) => void;
+  audioUrlsByFileId: Record<string, string>;
   appendOcrText: (note: Note, file: NoteFile) => void;
+  addRecordingMemo: (
+    note: Note,
+    file: NoteFile,
+    timeLabel: string,
+    text: string,
+  ) => void;
   exportImagesToPdf: (note: Note) => void;
+  generateAiLectureNote: (note: Note, file: NoteFile) => void;
+  loadAudioFile: (file: NoteFile) => void;
   toggleFavorite: (note: Note) => void;
   uploadNoteFile: (noteId: string, file: File | undefined) => void;
   uploadNoteFiles: (noteId: string, fileList: FileList | null) => void;
@@ -1544,6 +1861,19 @@ function NoteCard({
               }}
             />
           </label>
+          <label className="grid h-9 cursor-pointer place-items-center rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]">
+            Audio
+            <input
+              accept="audio/*"
+              className="sr-only"
+              disabled={isSaving}
+              type="file"
+              onChange={(event) => {
+                uploadNoteFile(note.id, event.currentTarget.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
           <button
             className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
             type="button"
@@ -1620,12 +1950,143 @@ function NoteCard({
                     OCR
                   </button>
                 ) : null}
+                {isAudioFile(file) ? (
+                  <button
+                    className="h-8 shrink-0 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-2 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+                    type="button"
+                    onClick={() => loadAudioFile(file)}
+                  >
+                    재생
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>
+          {files.filter(isAudioFile).map((file) => (
+            <RecordingPanel
+              audioUrl={audioUrlsByFileId[file.id]}
+              file={file}
+              key={file.id}
+              memos={note.recordingMemos.filter(
+                (memo) => memo.fileId === file.id,
+              )}
+              note={note}
+              addRecordingMemo={addRecordingMemo}
+              generateAiLectureNote={generateAiLectureNote}
+              loadAudioFile={loadAudioFile}
+            />
+          ))}
         </div>
       ) : null}
     </article>
+  );
+}
+
+function RecordingPanel({
+  audioUrl,
+  file,
+  memos,
+  note,
+  addRecordingMemo,
+  generateAiLectureNote,
+  loadAudioFile,
+}: {
+  audioUrl: string | undefined;
+  file: NoteFile;
+  memos: NoteRecordingMemo[];
+  note: Note;
+  addRecordingMemo: (
+    note: Note,
+    file: NoteFile,
+    timeLabel: string,
+    text: string,
+  ) => void;
+  generateAiLectureNote: (note: Note, file: NoteFile) => void;
+  loadAudioFile: (file: NoteFile) => void;
+}) {
+  const [timeLabel, setTimeLabel] = useState("");
+  const [memoText, setMemoText] = useState("");
+
+  return (
+    <section className="mt-3 rounded-md border border-[var(--border)] bg-[var(--summary-bg)] p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-[var(--text)]">
+            {file.fileName}
+          </p>
+          <p className="text-xs font-bold text-[var(--muted)]">Recording</p>
+        </div>
+        <button
+          className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+          type="button"
+          onClick={() => loadAudioFile(file)}
+        >
+          URL 갱신
+        </button>
+        <button
+          className="h-9 rounded-md border border-[var(--primary-button-border)] bg-[var(--primary-button-bg)] px-3 text-xs font-bold text-[var(--primary-button-text)] transition hover:bg-[var(--primary-button-hover)]"
+          type="button"
+          onClick={() => generateAiLectureNote(note, file)}
+        >
+          STT/AI
+        </button>
+      </div>
+
+      {audioUrl ? (
+        <audio className="mt-3 w-full" controls src={audioUrl}>
+          <track kind="captions" />
+        </audio>
+      ) : (
+        <p className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-sm font-semibold text-[var(--muted)]">
+          재생 버튼을 눌러 오디오 URL을 불러오세요.
+        </p>
+      )}
+
+      <form
+        className="mt-3 grid gap-2 md:grid-cols-[110px_1fr_auto]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          addRecordingMemo(note, file, timeLabel, memoText);
+          setTimeLabel("");
+          setMemoText("");
+        }}
+      >
+        <input
+          className="h-10 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+          placeholder="12:30"
+          value={timeLabel}
+          onChange={(event) => setTimeLabel(event.target.value)}
+        />
+        <input
+          className="h-10 min-w-0 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+          placeholder="타임라인 메모"
+          value={memoText}
+          onChange={(event) => setMemoText(event.target.value)}
+        />
+        <button
+          className="h-10 rounded-md border border-[var(--primary-button-border)] bg-[var(--primary-button-bg)] px-3 text-xs font-bold text-[var(--primary-button-text)] transition hover:bg-[var(--primary-button-hover)]"
+          type="submit"
+        >
+          추가
+        </button>
+      </form>
+
+      {memos.length > 0 ? (
+        <ul className="mt-3 grid gap-2">
+          {memos.map((memo) => (
+            <li
+              className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--soft-text)]"
+              key={memo.id}
+            >
+              <span className="font-black text-[var(--text)]">
+                {memo.timeLabel || "--:--"}
+              </span>{" "}
+              {memo.text}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
