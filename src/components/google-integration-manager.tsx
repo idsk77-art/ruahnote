@@ -29,6 +29,15 @@ type CalendarListItem = {
   selected?: boolean;
 };
 
+type GoogleContact = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  organization: string | null;
+  title: string | null;
+};
+
 function readableError(error: unknown, fallback: string) {
   if (typeof error === "string") return error;
   if (!error || typeof error !== "object") return fallback;
@@ -60,6 +69,8 @@ export default function GoogleIntegrationManager() {
   const [calendars, setCalendars] = useState<CalendarListItem[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [contacts, setContacts] = useState<GoogleContact[]>([]);
+  const [contactQuery, setContactQuery] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -162,6 +173,50 @@ export default function GoogleIntegrationManager() {
 
   function selectAllCalendars() {
     setSelectedCalendarIds(calendars.map((calendar) => calendar.id));
+  }
+
+  async function loadContacts() {
+    setIsLoading(true);
+    setMessage("");
+
+    const { data } = supabase
+      ? await supabase.auth.getSession()
+      : { data: { session: null } };
+    const accessToken = data.session?.access_token;
+
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인하세요.");
+      setIsLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (contactQuery.trim()) params.set("q", contactQuery.trim());
+
+    const response = await fetch(
+      `/api/google/contacts${params.size ? `?${params}` : ""}`,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    const dataJson = (await response.json().catch(() => null)) as
+      | { contacts?: GoogleContact[]; error?: unknown }
+      | null;
+
+    if (!response.ok) {
+      const errorMessage = readableError(
+        dataJson?.error,
+        "Google Contacts 조회를 완료하지 못했습니다.",
+      );
+      setMessage(`Google Contacts 오류: ${errorMessage}`);
+      setIsLoading(false);
+      return;
+    }
+
+    setContacts(dataJson?.contacts ?? []);
+    setIsLoading(false);
   }
 
   return (
@@ -307,6 +362,62 @@ export default function GoogleIntegrationManager() {
               </ul>
             </div>
           ) : null}
+
+          <section className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-black text-[var(--text)]">
+                  연락처 검색
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
+                  Google Contacts에서 이름, 이메일, 전화, 소속으로 검색합니다.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                <input
+                  className="h-10 min-w-0 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                  placeholder="이름, 이메일, 소속"
+                  value={contactQuery}
+                  onChange={(event) => setContactQuery(event.target.value)}
+                />
+                <button
+                  className="h-10 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isLoading}
+                  type="button"
+                  onClick={loadContacts}
+                >
+                  Contacts 확인
+                </button>
+              </div>
+            </div>
+
+            {contacts.length > 0 ? (
+              <ul className="mt-3 grid gap-2 md:grid-cols-2">
+                {contacts.map((contact) => (
+                  <li
+                    className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+                    key={contact.id}
+                  >
+                    <p className="text-sm font-bold text-[var(--text)]">
+                      {contact.name}
+                    </p>
+                    <p className="mt-1 break-words text-xs font-semibold text-[var(--muted)]">
+                      {[contact.email, contact.phone].filter(Boolean).join(" / ") ||
+                        "연락처 정보 없음"}
+                    </p>
+                    {[contact.organization, contact.title].filter(Boolean).length >
+                    0 ? (
+                      <p className="mt-1 break-words text-xs font-semibold text-[var(--primary)]">
+                        {[contact.organization, contact.title]
+                          .filter(Boolean)
+                          .join(" / ")}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
         </section>
       </section>
     </main>

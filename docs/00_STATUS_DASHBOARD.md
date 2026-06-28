@@ -70,6 +70,8 @@
 - [x] Google Calendar 조회 route 및 화면 버튼
 - [x] Google 전체 캘린더 목록 조회
 - [x] 캘린더별 선택 조회 UI
+- [x] Google Contacts 조회 route
+- [x] 연락처 이름/이메일/전화/소속 검색 UI
 
 ## 진행 중
 
@@ -92,6 +94,7 @@
 - [ ] Render `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
 - [ ] Google OAuth callback 토큰 저장 실사용 검증
 - [ ] Google Calendar 전체/선택 조회 운영 검증
+- [ ] Google Contacts 운영 조회 검증
 
 ## 현재 확인 결과
 
@@ -109,7 +112,7 @@
 | 운영 `/api/health` | 200 |
 | 로컬 `/notes` | 200, category/subject UI 포함 |
 | Supabase migrations | 0001/0002/0003/0004 모두 적용됨 |
-| 작업리스트 상태 | Google OAuth 완료, Calendar/Contacts 진행중 |
+| 작업리스트 상태 | Calendar/Contacts 완료, Gmail 진행중 |
 | 로컬 `/notes` Camera UI | 구현됨 |
 | 로컬 `/api/ocr` | route 구현됨, OpenAI key 필요 |
 | 로컬 `/notes` Scan UI | 다중 이미지 입력 구현됨 |
@@ -123,6 +126,7 @@
 | 로컬 `/api/google/oauth-url` | 503, Google Client ID 미설정 상태 정상 확인 |
 | Supabase migration 0005 | `google_accounts` 적용 완료 |
 | Google Calendar 조회 | 전체 캘린더 목록 및 선택 조회 구현됨 |
+| Google Contacts 조회 | route 및 검색 UI 구현됨 |
 
 ## 다음 작업
 
@@ -142,6 +146,7 @@
 14. Render에 `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
 15. Google Calendar 조회 버튼으로 다음 7일 일정 검증
 16. 여러 캘린더 선택/해제 후 일정 필터링 검증
+17. `/integrations`에서 Contacts 확인/검색 검증
 
 ## 현재 위험 요소
 
@@ -164,6 +169,7 @@
 | 2026-06-28 | current | Google OAuth URL/callback 스캐폴드와 연동 화면 추가 |
 | 2026-06-28 | current | Google token 암호화 저장 및 Calendar 조회 route 추가 |
 | 2026-06-28 | current | Google 전체 캘린더/선택 조회 UI 추가 |
+| 2026-06-28 | current | Google Contacts 조회 route 및 검색 UI 추가 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |

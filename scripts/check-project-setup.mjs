@@ -21,6 +21,7 @@ const requiredFiles = [
   "src/app/api/google/oauth-url/route.ts",
   "src/app/api/google/oauth-callback/route.ts",
   "src/app/api/google/calendar/route.ts",
+  "src/app/api/google/contacts/route.ts",
   "src/app/admin/page.tsx",
   "src/app/assignments/page.tsx",
   "src/app/integrations/page.tsx",
