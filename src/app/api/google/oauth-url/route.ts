@@ -1,5 +1,9 @@
 export const dynamic = "force-dynamic";
 
+import { createHmac } from "node:crypto";
+
+import { createServiceSupabaseClient } from "@/lib/supabase/server";
+
 const googleScopes = [
   "openid",
   "email",
@@ -14,6 +18,20 @@ function hasValue(value: string | undefined) {
   return Boolean(value && value.trim());
 }
 
+function stateSecret() {
+  return process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? process.env.GOOGLE_CLIENT_SECRET;
+}
+
+function base64Url(input: string) {
+  return Buffer.from(input, "utf8").toString("base64url");
+}
+
+function signState(payload: string) {
+  return createHmac("sha256", stateSecret() as string)
+    .update(payload)
+    .digest("base64url");
+}
+
 function redirectUri(request: Request) {
   if (hasValue(process.env.GOOGLE_REDIRECT_URI)) {
     return process.env.GOOGLE_REDIRECT_URI as string;
@@ -23,14 +41,46 @@ function redirectUri(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (!hasValue(process.env.GOOGLE_CLIENT_ID)) {
+  if (!hasValue(process.env.GOOGLE_CLIENT_ID) || !hasValue(stateSecret())) {
     return Response.json(
-      { configured: false, error: "GOOGLE_CLIENT_ID is not configured." },
+      {
+        configured: false,
+        error:
+          "GOOGLE_CLIENT_ID or GOOGLE_TOKEN_ENCRYPTION_KEY is not configured.",
+      },
       { status: 503 },
     );
   }
 
-  const state = crypto.randomUUID();
+  const authHeader = request.headers.get("authorization");
+  const accessToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : "";
+
+  if (!accessToken) {
+    return Response.json(
+      { configured: true, error: "RuahNote login session is required." },
+      { status: 401 },
+    );
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase.auth.getUser(accessToken);
+  const userId = data.user?.id;
+
+  if (error || !userId) {
+    return Response.json(
+      { configured: true, error: "Invalid RuahNote login session." },
+      { status: 401 },
+    );
+  }
+
+  const statePayload = JSON.stringify({
+    userId,
+    nonce: crypto.randomUUID(),
+    exp: Date.now() + 10 * 60 * 1000,
+  });
+  const state = `${base64Url(statePayload)}.${signState(statePayload)}`;
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID as string);
   authUrl.searchParams.set("redirect_uri", redirectUri(request));

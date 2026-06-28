@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { hasBrowserSupabaseConfig } from "@/lib/supabase/config";
 
 type OAuthUrlResponse = {
   configured?: boolean;
@@ -10,8 +13,20 @@ type OAuthUrlResponse = {
   error?: string;
 };
 
+type CalendarEvent = {
+  id?: string;
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+};
+
 export default function GoogleIntegrationManager() {
+  const isSupabaseConfigured = hasBrowserSupabaseConfig();
+  const supabase = useMemo(
+    () => (isSupabaseConfigured ? createBrowserSupabaseClient() : null),
+    [isSupabaseConfigured],
+  );
   const [oauthData, setOauthData] = useState<OAuthUrlResponse | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,14 +34,69 @@ export default function GoogleIntegrationManager() {
     setIsLoading(true);
     setMessage("");
 
-    const response = await fetch("/api/google/oauth-url");
-    const data = (await response.json().catch(() => null)) as OAuthUrlResponse | null;
-    setOauthData(data);
+    const { data: sessionData } = supabase
+      ? await supabase.auth.getSession()
+      : { data: { session: null } };
+    const accessToken = sessionData.session?.access_token;
 
-    if (!response.ok) {
-      setMessage(data?.error ?? "Google OAuth 설정을 확인하세요.");
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인한 뒤 Google 연동을 시작하세요.");
+      setIsLoading(false);
+      return;
     }
 
+    const response = await fetch("/api/google/oauth-url", {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const oauthResponse = (await response.json().catch(() => null)) as
+      | OAuthUrlResponse
+      | null;
+    setOauthData(oauthResponse);
+
+    if (!response.ok) {
+      setMessage(oauthResponse?.error ?? "Google OAuth 설정을 확인하세요.");
+    }
+
+    setIsLoading(false);
+  }
+
+  async function loadCalendar() {
+    setIsLoading(true);
+    setMessage("");
+
+    const { data } = supabase
+      ? await supabase.auth.getSession()
+      : { data: { session: null } };
+    const accessToken = data.session?.access_token;
+
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인하세요.");
+      setIsLoading(false);
+      return;
+    }
+
+    const response = await fetch("/api/google/calendar", {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const dataJson = (await response.json().catch(() => null)) as
+      | { items?: CalendarEvent[]; error?: unknown }
+      | null;
+
+    if (!response.ok) {
+      setMessage(
+        typeof dataJson?.error === "string"
+          ? dataJson.error
+          : "Google Calendar 조회를 완료하지 못했습니다.",
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    setCalendarEvents(dataJson?.items ?? []);
     setIsLoading(false);
   }
 
@@ -48,7 +118,7 @@ export default function GoogleIntegrationManager() {
             <div>
               <h2 className="text-lg font-bold text-[var(--text)]">OAuth</h2>
               <p className="mt-1 text-sm font-semibold text-[var(--muted)]">
-                Client ID/Secret과 redirect URI가 준비되면 Google 승인 화면으로 이동할 수 있습니다.
+                RuahNote 로그인 세션과 Google OAuth 설정이 준비되면 승인 화면으로 이동할 수 있습니다.
               </p>
             </div>
             <button
@@ -58,6 +128,14 @@ export default function GoogleIntegrationManager() {
               onClick={loadOAuthUrl}
             >
               {isLoading ? "확인 중" : "연결 URL 생성"}
+            </button>
+            <button
+              className="h-11 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-4 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLoading}
+              type="button"
+              onClick={loadCalendar}
+            >
+              Calendar 확인
             </button>
           </div>
 
@@ -89,6 +167,29 @@ export default function GoogleIntegrationManager() {
                   </span>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {calendarEvents.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
+              <h3 className="text-sm font-black text-[var(--text)]">
+                다음 7일 일정
+              </h3>
+              <ul className="mt-3 grid gap-2">
+                {calendarEvents.map((event) => (
+                  <li
+                    className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+                    key={event.id ?? `${event.summary}-${event.start?.dateTime}`}
+                  >
+                    <p className="text-sm font-bold text-[var(--text)]">
+                      {event.summary ?? "제목 없음"}
+                    </p>
+                    <p className="text-xs font-semibold text-[var(--muted)]">
+                      {event.start?.dateTime ?? event.start?.date ?? "-"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </section>

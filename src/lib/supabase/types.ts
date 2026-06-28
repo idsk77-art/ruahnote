@@ -189,6 +189,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      google_accounts: {
+        Row: RowTimestamps & {
+          id: string;
+          user_id: string;
+          google_sub: string | null;
+          email: string | null;
+          scope: string | null;
+          token_type: string | null;
+          access_token_enc: string;
+          refresh_token_enc: string | null;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          google_sub?: string | null;
+          email?: string | null;
+          scope?: string | null;
+          token_type?: string | null;
+          access_token_enc: string;
+          refresh_token_enc?: string | null;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          google_sub?: string | null;
+          email?: string | null;
+          scope?: string | null;
+          token_type?: string | null;
+          access_token_enc?: string;
+          refresh_token_enc?: string | null;
+          expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

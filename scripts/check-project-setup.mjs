@@ -12,6 +12,7 @@ const requiredFiles = [
   "supabase/migrations/0002_profiles_and_storage.sql",
   "supabase/migrations/0003_admin_roles.sql",
   "supabase/migrations/0004_note_core_metadata.sql",
+  "supabase/migrations/0005_google_accounts.sql",
   "src/app/api/health/route.ts",
   "src/app/api/ocr/route.ts",
   "src/app/api/pdf/route.ts",
@@ -19,11 +20,13 @@ const requiredFiles = [
   "src/app/api/lecture-note/route.ts",
   "src/app/api/google/oauth-url/route.ts",
   "src/app/api/google/oauth-callback/route.ts",
+  "src/app/api/google/calendar/route.ts",
   "src/app/admin/page.tsx",
   "src/app/assignments/page.tsx",
   "src/app/integrations/page.tsx",
   "src/components/assignment-manager.tsx",
   "src/components/google-integration-manager.tsx",
+  "src/lib/google/tokens.ts",
   "src/lib/assignments/types.ts",
 ];
 

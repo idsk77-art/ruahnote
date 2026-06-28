@@ -64,6 +64,10 @@
 - [x] Google OAuth 승인 URL 생성 route
 - [x] Google OAuth callback code 교환 route
 - [x] Google 연동 설정 화면
+- [x] Supabase `google_accounts` migration
+- [x] Google OAuth state Supabase 사용자 바인딩
+- [x] Google token 서버 암호화 저장
+- [x] Google Calendar 조회 route 및 화면 버튼
 
 ## 진행 중
 
@@ -83,7 +87,9 @@
 - [ ] STT/AI 강의노트 OpenAI key 실사용 검증
 - [ ] Google OAuth Client ID/Secret 등록
 - [ ] Google OAuth 승인 URL 실사용 검증
-- [ ] Google token 암호화 저장 방식 확정
+- [ ] Render `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
+- [ ] Google OAuth callback 토큰 저장 실사용 검증
+- [ ] Google Calendar 실사용 조회 검증
 
 ## 현재 확인 결과
 
@@ -101,7 +107,7 @@
 | 운영 `/api/health` | 200 |
 | 로컬 `/notes` | 200, category/subject UI 포함 |
 | Supabase migrations | 0001/0002/0003/0004 모두 적용됨 |
-| 작업리스트 상태 | STT/AI 강의노트 완료, Google OAuth 진행중 |
+| 작업리스트 상태 | Google OAuth 완료, Calendar/Contacts 진행중 |
 | 로컬 `/notes` Camera UI | 구현됨 |
 | 로컬 `/api/ocr` | route 구현됨, OpenAI key 필요 |
 | 로컬 `/notes` Scan UI | 다중 이미지 입력 구현됨 |
@@ -113,6 +119,7 @@
 | 로컬 `/api/lecture-note` | route 구현됨, OpenAI key 필요 |
 | 로컬 `/integrations` | 200, Google 연동 화면 렌더 확인 |
 | 로컬 `/api/google/oauth-url` | 503, Google Client ID 미설정 상태 정상 확인 |
+| Supabase migration 0005 | `google_accounts` 적용 완료 |
 
 ## 다음 작업
 
@@ -129,6 +136,8 @@
 11. OpenAI API key 등록 후 `/notes` 오디오 STT/AI 흐름 검증
 12. Google Cloud OAuth Client ID/Secret 및 redirect URI 등록
 13. `/integrations`에서 Google 승인 URL 생성/콜백 교환 검증
+14. Render에 `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
+15. Google Calendar 조회 버튼으로 다음 7일 일정 검증
 
 ## 현재 위험 요소
 
@@ -137,6 +146,7 @@
 | 첫 admin 미지정 | 아직 Supabase profiles가 0개라 승격 대상 없음 | 회원가입 후 `admin:set` 실행 |
 | OpenAI API 미설정 | 현재 health check에서 OpenAI는 missing 상태 | OCR/STT/AI 기능 시작 전 등록 |
 | Google OAuth 미설정 | Client ID/Secret과 승인된 redirect URI가 아직 없음 | Google Cloud 설정 후 OAuth 실사용 검증 |
+| Google token 암호화 키 | 토큰 저장에는 `GOOGLE_TOKEN_ENCRYPTION_KEY`가 필요 | Render 환경변수 등록 |
 
 ## 최근 배포/작업
 
@@ -148,6 +158,7 @@
 | 2026-06-28 | current | 노트 오디오 첨부, 재생 UI, 녹음 타임라인 메모 추가 |
 | 2026-06-28 | current | OpenAI STT/AI 강의노트 route 및 노트 연동 추가 |
 | 2026-06-28 | current | Google OAuth URL/callback 스캐폴드와 연동 화면 추가 |
+| 2026-06-28 | current | Google token 암호화 저장 및 Calendar 조회 route 추가 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |

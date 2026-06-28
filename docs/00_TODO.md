@@ -20,7 +20,9 @@
 - [ ] STT/AI 강의노트 OpenAI key 실사용 검증
 - [ ] Google OAuth Client ID/Secret 등록
 - [ ] Google OAuth 승인 URL 실사용 검증
-- [ ] Google token 암호화 저장 방식 확정
+- [ ] Render `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
+- [ ] Google OAuth callback 토큰 저장 실사용 검증
+- [ ] Google Calendar 실사용 조회 검증
 
 ## Medium Priority
 
@@ -66,6 +68,10 @@
 - [x] Google OAuth 승인 URL 생성 route 구현
 - [x] Google OAuth callback code 교환 route 구현
 - [x] Google 연동 설정 화면 구현
+- [x] Supabase `google_accounts` migration 구현/적용
+- [x] Google OAuth state Supabase 사용자 바인딩 구현
+- [x] Google token 서버 암호화 저장 구현
+- [x] Google Calendar 조회 route 및 화면 버튼 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증
