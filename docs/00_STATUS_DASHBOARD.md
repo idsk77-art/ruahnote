@@ -68,7 +68,7 @@
 
 | 항목 | 상태 |
 |---|---|
-| GitHub `main` | 이번 작업 커밋 push 예정 |
+| GitHub `main` | 이번 작업 커밋 push 완료 |
 | 로컬 `npm.cmd run setup:check` | 통과 |
 | 로컬 `npm.cmd run lint` | 통과 |
 | 로컬 `npm.cmd run build` | 통과 |
