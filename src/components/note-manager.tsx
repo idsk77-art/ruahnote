@@ -1350,6 +1350,20 @@ function NoteCard({
               }}
             />
           </label>
+          <label className="grid h-9 cursor-pointer place-items-center rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]">
+            Camera
+            <input
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              disabled={isSaving}
+              type="file"
+              onChange={(event) => {
+                uploadNoteFile(note.id, event.currentTarget.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
           <button
             className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
             type="button"
