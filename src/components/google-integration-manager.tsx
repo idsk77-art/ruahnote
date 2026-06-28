@@ -38,6 +38,19 @@ type GoogleContact = {
   title: string | null;
 };
 
+type GmailMessage = {
+  id: string;
+  threadId: string | null;
+  from: string | null;
+  to: string | null;
+  subject: string;
+  date: string | null;
+  snippet: string;
+  labels: string[];
+  body: string;
+  internalDate: string | null;
+};
+
 function readableError(error: unknown, fallback: string) {
   if (typeof error === "string") return error;
   if (!error || typeof error !== "object") return fallback;
@@ -71,6 +84,13 @@ export default function GoogleIntegrationManager() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [contacts, setContacts] = useState<GoogleContact[]>([]);
   const [contactQuery, setContactQuery] = useState("");
+  const [gmailMessages, setGmailMessages] = useState<GmailMessage[]>([]);
+  const [selectedGmailMessage, setSelectedGmailMessage] =
+    useState<GmailMessage | null>(null);
+  const [gmailQuery, setGmailQuery] = useState("");
+  const [draftTo, setDraftTo] = useState("");
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftBody, setDraftBody] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -216,6 +236,136 @@ export default function GoogleIntegrationManager() {
     }
 
     setContacts(dataJson?.contacts ?? []);
+    setIsLoading(false);
+  }
+
+  async function getRuahNoteAccessToken() {
+    const { data } = supabase
+      ? await supabase.auth.getSession()
+      : { data: { session: null } };
+
+    return data.session?.access_token ?? "";
+  }
+
+  async function loadGmailMessages() {
+    setIsLoading(true);
+    setMessage("");
+
+    const accessToken = await getRuahNoteAccessToken();
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인하세요.");
+      setIsLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (gmailQuery.trim()) params.set("q", gmailQuery.trim());
+
+    const response = await fetch(
+      `/api/google/gmail${params.size ? `?${params}` : ""}`,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    const dataJson = (await response.json().catch(() => null)) as
+      | { messages?: GmailMessage[]; error?: unknown }
+      | null;
+
+    if (!response.ok) {
+      const errorMessage = readableError(
+        dataJson?.error,
+        "Gmail 목록 조회를 완료하지 못했습니다.",
+      );
+      setMessage(`Gmail 오류: ${errorMessage}`);
+      setIsLoading(false);
+      return;
+    }
+
+    setGmailMessages(dataJson?.messages ?? []);
+    setSelectedGmailMessage(null);
+    setIsLoading(false);
+  }
+
+  async function loadGmailMessage(messageId: string) {
+    setIsLoading(true);
+    setMessage("");
+
+    const accessToken = await getRuahNoteAccessToken();
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인하세요.");
+      setIsLoading(false);
+      return;
+    }
+
+    const response = await fetch(
+      `/api/google/gmail?messageId=${encodeURIComponent(messageId)}`,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    const dataJson = (await response.json().catch(() => null)) as
+      | { message?: GmailMessage; error?: unknown }
+      | null;
+
+    if (!response.ok) {
+      const errorMessage = readableError(
+        dataJson?.error,
+        "Gmail 상세 조회를 완료하지 못했습니다.",
+      );
+      setMessage(`Gmail 오류: ${errorMessage}`);
+      setIsLoading(false);
+      return;
+    }
+
+    setSelectedGmailMessage(dataJson?.message ?? null);
+    setIsLoading(false);
+  }
+
+  async function createGmailDraft() {
+    setIsLoading(true);
+    setMessage("");
+
+    const accessToken = await getRuahNoteAccessToken();
+    if (!accessToken) {
+      setMessage("먼저 RuahNote에 로그인하세요.");
+      setIsLoading(false);
+      return;
+    }
+
+    const response = await fetch("/api/google/gmail", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        to: draftTo,
+        subject: draftSubject,
+        body: draftBody,
+      }),
+    });
+    const dataJson = (await response.json().catch(() => null)) as
+      | { draft?: unknown; error?: unknown }
+      | null;
+
+    if (!response.ok) {
+      const errorMessage = readableError(
+        dataJson?.error,
+        "Gmail 초안 생성을 완료하지 못했습니다.",
+      );
+      setMessage(`Gmail 오류: ${errorMessage}`);
+      setIsLoading(false);
+      return;
+    }
+
+    setMessage("Gmail 초안을 생성했습니다.");
+    setDraftTo("");
+    setDraftSubject("");
+    setDraftBody("");
     setIsLoading(false);
   }
 
@@ -417,6 +567,146 @@ export default function GoogleIntegrationManager() {
                 ))}
               </ul>
             ) : null}
+          </section>
+
+          <section className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h3 className="text-sm font-black text-[var(--text)]">
+                  Gmail
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
+                  메일 목록과 상세를 조회하고 Gmail 초안을 생성합니다.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                <input
+                  className="h-10 min-w-0 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                  placeholder="from:, subject:, newer_than:7d"
+                  value={gmailQuery}
+                  onChange={(event) => setGmailQuery(event.target.value)}
+                />
+                <button
+                  className="h-10 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isLoading}
+                  type="button"
+                  onClick={loadGmailMessages}
+                >
+                  Gmail 확인
+                </button>
+              </div>
+            </div>
+
+            {gmailMessages.length > 0 ? (
+              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
+                <ul className="grid gap-2">
+                  {gmailMessages.map((gmailMessage) => (
+                    <li
+                      className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+                      key={gmailMessage.id}
+                    >
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[var(--text)]">
+                            {gmailMessage.subject}
+                          </p>
+                          <p className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">
+                            {gmailMessage.from ?? "보낸 사람 없음"}
+                          </p>
+                        </div>
+                        <button
+                          className="h-8 shrink-0 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={isLoading}
+                          type="button"
+                          onClick={() => loadGmailMessage(gmailMessage.id)}
+                        >
+                          상세
+                        </button>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[var(--soft-text)]">
+                        {gmailMessage.snippet || "미리보기 없음"}
+                      </p>
+                      {gmailMessage.date ? (
+                        <p className="mt-2 text-[11px] font-semibold text-[var(--muted)]">
+                          {gmailMessage.date}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+
+                <article className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3">
+                  {selectedGmailMessage ? (
+                    <>
+                      <p className="text-sm font-black text-[var(--text)]">
+                        {selectedGmailMessage.subject}
+                      </p>
+                      <p className="mt-2 break-words text-xs font-semibold text-[var(--muted)]">
+                        From: {selectedGmailMessage.from ?? "-"}
+                      </p>
+                      <p className="mt-1 break-words text-xs font-semibold text-[var(--muted)]">
+                        To: {selectedGmailMessage.to ?? "-"}
+                      </p>
+                      <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--control-bg)] p-3 text-xs leading-5 text-[var(--soft-text)]">
+                        {selectedGmailMessage.body ||
+                          selectedGmailMessage.snippet ||
+                          "본문을 불러올 수 없습니다."}
+                      </pre>
+                    </>
+                  ) : (
+                    <p className="text-sm font-semibold text-[var(--muted)]">
+                      메일 상세를 선택하세요.
+                    </p>
+                  )}
+                </article>
+              </div>
+            ) : null}
+
+            <form
+              className="mt-4 grid gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                createGmailDraft();
+              }}
+            >
+              <h4 className="text-sm font-black text-[var(--text)]">
+                Gmail 초안
+              </h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 text-xs font-bold text-[var(--muted)]">
+                  받는 사람
+                  <input
+                    className="h-10 min-w-0 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    placeholder="name@example.com"
+                    type="email"
+                    value={draftTo}
+                    onChange={(event) => setDraftTo(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-bold text-[var(--muted)]">
+                  제목
+                  <input
+                    className="h-10 min-w-0 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    placeholder="메일 제목"
+                    value={draftSubject}
+                    onChange={(event) => setDraftSubject(event.target.value)}
+                  />
+                </label>
+              </div>
+              <textarea
+                className="min-h-32 resize-y rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 py-2 text-sm font-semibold leading-6 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                placeholder="메일 본문"
+                value={draftBody}
+                onChange={(event) => setDraftBody(event.target.value)}
+              />
+              <button
+                className="h-10 w-full rounded-md border border-[var(--primary-button-border)] bg-[var(--primary-button-bg)] px-3 text-sm font-bold text-[var(--primary-button-text)] transition hover:bg-[var(--primary-button-hover)] disabled:cursor-not-allowed disabled:opacity-60 md:w-fit"
+                disabled={isLoading}
+                type="submit"
+              >
+                초안 생성
+              </button>
+            </form>
           </section>
         </section>
       </section>

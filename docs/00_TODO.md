@@ -24,6 +24,8 @@
 - [ ] Google OAuth callback 토큰 저장 실사용 검증
 - [ ] Google Calendar 전체/선택 조회 운영 검증
 - [ ] Google Contacts 운영 조회 검증
+- [ ] Gmail 목록/상세/초안 운영 검증
+- [ ] 통합/QA/배포 시나리오 점검
 
 ## Medium Priority
 
@@ -77,6 +79,10 @@
 - [x] 캘린더별 선택 조회 UI 구현
 - [x] Google Contacts 조회 route 구현
 - [x] 연락처 이름/이메일/전화/소속 검색 UI 구현
+- [x] Gmail 목록/검색 조회 route 구현
+- [x] Gmail 상세 본문 조회 route 구현
+- [x] Gmail 초안 생성 route 구현
+- [x] Gmail 목록/상세/초안 생성 UI 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증
