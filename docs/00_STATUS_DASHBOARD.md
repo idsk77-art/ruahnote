@@ -45,6 +45,10 @@
 - [x] 노트 카드 Scan multi-image upload input
 - [x] `/api/pdf` scan image PDF export route
 - [x] 이미지 첨부 PDF export button
+- [x] Assignments 과제 관리 화면
+- [x] 과제 LocalStorage/Supabase CRUD path
+- [x] 과제 상태 칸반, 완료 보관, 마감 임박/초과 요약
+- [x] 과제 관련 노트 연결 UI
 
 ## 진행 중
 
@@ -58,12 +62,13 @@
 - [ ] 카메라/OCR 브라우저 권한 검증
 - [ ] OpenAI API key 운영 등록 후 OCR 실사용 검증
 - [ ] 스캔센터/PDF 브라우저 실사용 검증
+- [ ] 과제 관리 브라우저 실사용 검증
 
 ## 현재 확인 결과
 
 | 항목 | 상태 |
 |---|---|
-| GitHub `main` | 최신 커밋 `9bd9162` push 완료 |
+| GitHub `main` | 이번 작업 커밋 push 예정 |
 | 로컬 `npm.cmd run setup:check` | 통과 |
 | 로컬 `npm.cmd run lint` | 통과 |
 | 로컬 `npm.cmd run build` | 통과 |
@@ -75,11 +80,12 @@
 | 운영 `/api/health` | 200 |
 | 로컬 `/notes` | 200, category/subject UI 포함 |
 | Supabase migrations | 0001/0002/0003/0004 모두 적용됨 |
-| 작업리스트 상태 | 카메라/OCR 기반 완료, 스캔센터/PDF 진행중 |
+| 작업리스트 상태 | 과제 관리 완료, 과제 후보/중복 통합 진행중 |
 | 로컬 `/notes` Camera UI | 구현됨 |
 | 로컬 `/api/ocr` | route 구현됨, OpenAI key 필요 |
 | 로컬 `/notes` Scan UI | 다중 이미지 입력 구현됨 |
 | 로컬 `/api/pdf` | 샘플 이미지 PDF 1페이지 생성 검증 |
+| 로컬 `/assignments` | 구현됨, 빌드 라우트 생성 확인 |
 
 ## 다음 작업
 
@@ -90,6 +96,7 @@
 5. `npm.cmd run admin:set -- user@example.com` 실행
 6. `/login`, `/notes`, `/admin` 실사용 검증
 7. category > subject > note 작성 흐름 검증
+8. `/assignments`에서 과제 생성/상태변경/완료 보관 흐름 검증
 
 ## 현재 위험 요소
 
@@ -103,6 +110,7 @@
 | 날짜 | 커밋 | 내용 |
 |---|---|---|
 | 2026-06-28 | pending | Scan image PDF export route 및 버튼 추가 |
+| 2026-06-28 | current | Assignments 과제 관리 화면 및 CRUD 경로 추가 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |

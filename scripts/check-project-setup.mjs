@@ -16,6 +16,9 @@ const requiredFiles = [
   "src/app/api/ocr/route.ts",
   "src/app/api/pdf/route.ts",
   "src/app/admin/page.tsx",
+  "src/app/assignments/page.tsx",
+  "src/components/assignment-manager.tsx",
+  "src/lib/assignments/types.ts",
 ];
 
 const requiredEnvExampleKeys = [

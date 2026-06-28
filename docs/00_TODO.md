@@ -14,6 +14,7 @@
 - [ ] 카메라/OCR 브라우저 권한 검증
 - [ ] OpenAI API key 운영 등록 후 OCR 실사용 검증
 - [ ] 스캔센터/PDF 브라우저 실사용 검증
+- [ ] 과제 관리 브라우저 실사용 검증
 
 ## Medium Priority
 
@@ -40,6 +41,10 @@
 - [x] 노트 카드 Scan multi-image upload input 구현
 - [x] `/api/pdf` scan image PDF export route 구현
 - [x] 이미지 첨부 PDF export button 구현
+- [x] Assignments 과제 관리 화면 구현
+- [x] 과제 LocalStorage/Supabase CRUD 경로 구현
+- [x] 과제 상태 칸반/완료 보관/마감 요약 구현
+- [x] 과제 관련 노트 연결 UI 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증
