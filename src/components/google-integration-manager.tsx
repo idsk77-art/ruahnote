@@ -16,7 +16,17 @@ type OAuthUrlResponse = {
 type CalendarEvent = {
   id?: string;
   summary?: string;
+  calendarId?: string;
+  calendarSummary?: string;
   start?: { dateTime?: string; date?: string };
+};
+
+type CalendarListItem = {
+  id: string;
+  summary?: string;
+  backgroundColor?: string;
+  primary?: boolean;
+  selected?: boolean;
 };
 
 function readableError(error: unknown, fallback: string) {
@@ -47,6 +57,8 @@ export default function GoogleIntegrationManager() {
     [isSupabaseConfigured],
   );
   const [oauthData, setOauthData] = useState<OAuthUrlResponse | null>(null);
+  const [calendars, setCalendars] = useState<CalendarListItem[]>([]);
+  const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -98,13 +110,25 @@ export default function GoogleIntegrationManager() {
       return;
     }
 
-    const response = await fetch("/api/google/calendar", {
+    const params = new URLSearchParams();
+    if (selectedCalendarIds.length > 0) {
+      params.set("calendarIds", selectedCalendarIds.join(","));
+    }
+    const response = await fetch(
+      `/api/google/calendar${params.size ? `?${params}` : ""}`,
+      {
       headers: {
         authorization: `Bearer ${accessToken}`,
       },
-    });
+      },
+    );
     const dataJson = (await response.json().catch(() => null)) as
-      | { items?: CalendarEvent[]; error?: unknown }
+      | {
+          calendars?: CalendarListItem[];
+          selectedCalendarIds?: string[];
+          items?: CalendarEvent[];
+          error?: unknown;
+        }
       | null;
 
     if (!response.ok) {
@@ -117,8 +141,27 @@ export default function GoogleIntegrationManager() {
       return;
     }
 
+    const nextCalendars = dataJson?.calendars ?? [];
+    setCalendars(nextCalendars);
+    setSelectedCalendarIds(
+      dataJson?.selectedCalendarIds ??
+        selectedCalendarIds ??
+        nextCalendars.map((calendar) => calendar.id),
+    );
     setCalendarEvents(dataJson?.items ?? []);
     setIsLoading(false);
+  }
+
+  function toggleCalendar(calendarId: string) {
+    setSelectedCalendarIds((currentIds) =>
+      currentIds.includes(calendarId)
+        ? currentIds.filter((id) => id !== calendarId)
+        : [...currentIds, calendarId],
+    );
+  }
+
+  function selectAllCalendars() {
+    setSelectedCalendarIds(calendars.map((calendar) => calendar.id));
   }
 
   return (
@@ -191,6 +234,56 @@ export default function GoogleIntegrationManager() {
             </div>
           ) : null}
 
+          {calendars.length > 0 ? (
+            <section className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-black text-[var(--text)]">
+                  캘린더 선택
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+                    type="button"
+                    onClick={selectAllCalendars}
+                  >
+                    전체 선택
+                  </button>
+                  <button
+                    className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+                    type="button"
+                    onClick={loadCalendar}
+                  >
+                    선택 조회
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {calendars.map((calendar) => (
+                  <label
+                    className="flex min-w-0 items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+                    key={calendar.id}
+                  >
+                    <input
+                      checked={selectedCalendarIds.includes(calendar.id)}
+                      type="checkbox"
+                      onChange={() => toggleCalendar(calendar.id)}
+                    />
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: calendar.backgroundColor ?? "#7F927F",
+                      }}
+                    />
+                    <span className="min-w-0 truncate text-sm font-bold text-[var(--text)]">
+                      {calendar.summary ?? calendar.id}
+                      {calendar.primary ? " / 기본" : ""}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {calendarEvents.length > 0 ? (
             <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
               <h3 className="text-sm font-black text-[var(--text)]">
@@ -206,7 +299,8 @@ export default function GoogleIntegrationManager() {
                       {event.summary ?? "제목 없음"}
                     </p>
                     <p className="text-xs font-semibold text-[var(--muted)]">
-                      {event.start?.dateTime ?? event.start?.date ?? "-"}
+                      {event.start?.dateTime ?? event.start?.date ?? "-"} /{" "}
+                      {event.calendarSummary ?? event.calendarId ?? "Calendar"}
                     </p>
                   </li>
                 ))}

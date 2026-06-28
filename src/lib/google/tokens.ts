@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createDecipheriv, createHmac } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
 
 function hasValue(value: string | undefined) {
   return Boolean(value && value.trim());
@@ -35,4 +35,21 @@ export function decryptGoogleToken(encryptedToken: string) {
     decipher.update(Buffer.from(encryptedBase64, "base64url")),
     decipher.final(),
   ]).toString("utf8");
+}
+
+export function encryptGoogleToken(token: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(token, "utf8"),
+    cipher.final(),
+  ]);
+  const tag = cipher.getAuthTag();
+
+  return [
+    "v1",
+    iv.toString("base64url"),
+    tag.toString("base64url"),
+    encrypted.toString("base64url"),
+  ].join(".");
 }

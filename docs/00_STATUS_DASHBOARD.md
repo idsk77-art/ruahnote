@@ -68,6 +68,8 @@
 - [x] Google OAuth state Supabase 사용자 바인딩
 - [x] Google token 서버 암호화 저장
 - [x] Google Calendar 조회 route 및 화면 버튼
+- [x] Google 전체 캘린더 목록 조회
+- [x] 캘린더별 선택 조회 UI
 
 ## 진행 중
 
@@ -89,7 +91,7 @@
 - [ ] Google OAuth 승인 URL 실사용 검증
 - [ ] Render `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
 - [ ] Google OAuth callback 토큰 저장 실사용 검증
-- [ ] Google Calendar 실사용 조회 검증
+- [ ] Google Calendar 전체/선택 조회 운영 검증
 
 ## 현재 확인 결과
 
@@ -120,6 +122,7 @@
 | 로컬 `/integrations` | 200, Google 연동 화면 렌더 확인 |
 | 로컬 `/api/google/oauth-url` | 503, Google Client ID 미설정 상태 정상 확인 |
 | Supabase migration 0005 | `google_accounts` 적용 완료 |
+| Google Calendar 조회 | 전체 캘린더 목록 및 선택 조회 구현됨 |
 
 ## 다음 작업
 
@@ -138,6 +141,7 @@
 13. `/integrations`에서 Google 승인 URL 생성/콜백 교환 검증
 14. Render에 `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
 15. Google Calendar 조회 버튼으로 다음 7일 일정 검증
+16. 여러 캘린더 선택/해제 후 일정 필터링 검증
 
 ## 현재 위험 요소
 
@@ -159,6 +163,7 @@
 | 2026-06-28 | current | OpenAI STT/AI 강의노트 route 및 노트 연동 추가 |
 | 2026-06-28 | current | Google OAuth URL/callback 스캐폴드와 연동 화면 추가 |
 | 2026-06-28 | current | Google token 암호화 저장 및 Calendar 조회 route 추가 |
+| 2026-06-28 | current | Google 전체 캘린더/선택 조회 UI 추가 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |

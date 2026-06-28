@@ -22,7 +22,7 @@
 - [ ] Google OAuth 승인 URL 실사용 검증
 - [ ] Render `GOOGLE_TOKEN_ENCRYPTION_KEY` 등록
 - [ ] Google OAuth callback 토큰 저장 실사용 검증
-- [ ] Google Calendar 실사용 조회 검증
+- [ ] Google Calendar 전체/선택 조회 운영 검증
 
 ## Medium Priority
 
@@ -72,6 +72,8 @@
 - [x] Google OAuth state Supabase 사용자 바인딩 구현
 - [x] Google token 서버 암호화 저장 구현
 - [x] Google Calendar 조회 route 및 화면 버튼 구현
+- [x] Google 전체 캘린더 목록 조회 구현
+- [x] 캘린더별 선택 조회 UI 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증

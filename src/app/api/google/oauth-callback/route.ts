@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { createCipheriv, createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 
+import { encryptGoogleToken } from "@/lib/google/tokens";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
 function hasValue(value: string | undefined) {
@@ -10,15 +11,6 @@ function hasValue(value: string | undefined) {
 
 function stateSecret() {
   return process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? process.env.GOOGLE_CLIENT_SECRET;
-}
-
-function encryptionKey() {
-  const secret = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY;
-  if (!hasValue(secret)) return null;
-
-  return createHmac("sha256", "ruahnote-google-token")
-    .update(secret as string)
-    .digest();
 }
 
 function signState(payload: string) {
@@ -43,25 +35,6 @@ function parseState(state: string | null) {
   return { userId: parsed.userId };
 }
 
-function encryptToken(token: string) {
-  const key = encryptionKey();
-  if (!key) throw new Error("GOOGLE_TOKEN_ENCRYPTION_KEY is not configured.");
-
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(token, "utf8"),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag();
-
-  return [
-    "v1",
-    iv.toString("base64url"),
-    tag.toString("base64url"),
-    encrypted.toString("base64url"),
-  ].join(".");
-}
 
 function redirectUri(request: Request) {
   if (hasValue(process.env.GOOGLE_REDIRECT_URI)) {
@@ -168,9 +141,9 @@ export async function GET(request: Request) {
         email: profileData?.email ?? null,
         scope: tokenData?.scope ?? null,
         token_type: tokenData?.token_type ?? null,
-        access_token_enc: encryptToken(tokenData?.access_token ?? ""),
+        access_token_enc: encryptGoogleToken(tokenData?.access_token ?? ""),
         refresh_token_enc: tokenData?.refresh_token
-          ? encryptToken(tokenData.refresh_token)
+          ? encryptGoogleToken(tokenData.refresh_token)
           : null,
         expires_at: expiresAt,
       },
