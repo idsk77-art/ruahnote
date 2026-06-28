@@ -31,6 +31,8 @@
 - [x] Render Primary URL `https://ruahnote-bp6m.onrender.com` 확인
 - [x] 운영 `/` 200 확인
 - [x] 운영 `/api/health` 200 확인
+- [x] Notes category/subject local + Supabase CRUD path
+- [x] Notes subject assignment UI
 
 ## 진행 중
 
@@ -40,6 +42,7 @@
 - [ ] 실제 브라우저에서 Supabase 로그인 검증
 - [ ] 실제 브라우저에서 Notes DB CRUD 검증
 - [ ] 실제 브라우저에서 파일 업로드 검증
+- [ ] 노트 코어 브라우저 실사용 검증
 
 ## 현재 확인 결과
 
@@ -55,6 +58,7 @@
 | 운영 URL | `https://ruahnote-bp6m.onrender.com` |
 | 운영 `/` | 200 |
 | 운영 `/api/health` | 200 |
+| 로컬 `/notes` | 200, category/subject UI 포함 |
 
 ## 다음 작업
 
@@ -64,6 +68,7 @@
 4. `/login`에서 회원가입 진행
 5. `npm.cmd run admin:set -- user@example.com` 실행
 6. `/login`, `/notes`, `/admin` 실사용 검증
+7. category > subject > note 작성 흐름 검증
 
 ## 현재 위험 요소
 
@@ -76,6 +81,7 @@
 
 | 날짜 | 커밋 | 내용 |
 |---|---|---|
+| 2026-06-28 | pending | Notes category/subject CRUD path 추가 |
 | 2026-06-28 | pending | 운영 URL을 `ruahnote-bp6m.onrender.com`으로 정정 |
 | 2026-06-28 | `9bd9162` | 배포 상태 문서 갱신 |
 | 2026-06-28 | `26ce34a` | 운영 URL 진단 스크립트 추가 |

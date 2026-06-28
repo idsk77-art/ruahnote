@@ -10,6 +10,7 @@
 - [ ] `/admin` Supabase admin role 입장 검증
 - [ ] 실제 브라우저에서 Notes DB CRUD 검증
 - [ ] 실제 브라우저에서 파일 업로드 검증
+- [ ] 실제 브라우저에서 category > subject > note 흐름 검증
 
 ## Medium Priority
 
@@ -21,6 +22,8 @@
 - [x] DB 스키마 초안 작성
 - [x] 로그인/Auth 화면 기반 구현
 - [x] Notes CRUD 로컬 MVP 화면 구현
+- [x] Notes category/subject CRUD 경로 구현
+- [x] Notes subject assignment UI 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증

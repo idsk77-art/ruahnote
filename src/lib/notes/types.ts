@@ -1,5 +1,6 @@
 export type Note = {
   id: string;
+  subjectId: string | null;
   title: string;
   contentPlain: string;
   noteDate: string;
@@ -8,9 +9,28 @@ export type Note = {
 };
 
 export type NoteDraft = {
+  subjectId: string;
   title: string;
   contentPlain: string;
   noteDate: string;
+};
+
+export type NoteCategory = {
+  id: string;
+  title: string;
+  color: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NoteSubject = {
+  id: string;
+  categoryId: string;
+  title: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type NoteFile = {

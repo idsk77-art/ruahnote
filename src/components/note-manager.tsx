@@ -3,31 +3,65 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Note, NoteDraft, NoteFile } from "@/lib/notes/types";
+import type {
+  Note,
+  NoteCategory,
+  NoteDraft,
+  NoteFile,
+  NoteSubject,
+} from "@/lib/notes/types";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { hasBrowserSupabaseConfig } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/types";
 
 const noteStorageKey = "ruahnote.notes.v1";
 const fileStorageKey = "ruahnote.note-files.v1";
+const categoryStorageKey = "ruahnote.note-categories.v1";
+const subjectStorageKey = "ruahnote.note-subjects.v1";
 const storageBucket = "note-files";
 
 type StorageMode = "local" | "supabase";
 type SupabaseNoteClient = SupabaseClient<Database>;
 type SupabaseNoteRow = Database["public"]["Tables"]["notes"]["Row"];
 type SupabaseFileRow = Database["public"]["Tables"]["files"]["Row"];
+type SupabaseCategoryRow = Database["public"]["Tables"]["categories"]["Row"];
+type SupabaseSubjectRow = Database["public"]["Tables"]["subjects"]["Row"];
 
 const today = new Date().toISOString().slice(0, 10);
 
 const emptyDraft: NoteDraft = {
+  subjectId: "",
   title: "",
   contentPlain: "",
   noteDate: today,
 };
 
+const defaultCategories: NoteCategory[] = [
+  {
+    id: "general-category",
+    title: "General",
+    color: "#7F927F",
+    sortOrder: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const defaultSubjects: NoteSubject[] = [
+  {
+    id: "general-subject",
+    categoryId: "general-category",
+    title: "Inbox",
+    description: "Default note collection",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 const defaultNotes: Note[] = [
   {
     id: "welcome-note",
+    subjectId: "general-subject",
     title: "RuahNote 노트 MVP",
     contentPlain:
       "로그인된 Supabase 세션이 있으면 노트와 파일을 DB/Storage에 저장하고, 설정 전에는 LocalStorage로 동작합니다.",
@@ -47,6 +81,7 @@ function createId() {
 
 function normalizeDraft(draft: NoteDraft): NoteDraft {
   return {
+    subjectId: draft.subjectId,
     title: draft.title.trim(),
     contentPlain: draft.contentPlain.trim(),
     noteDate: draft.noteDate || today,
@@ -56,12 +91,42 @@ function normalizeDraft(draft: NoteDraft): NoteDraft {
 function mapSupabaseNote(row: SupabaseNoteRow): Note {
   return {
     id: row.id,
+    subjectId: row.subject_id,
     title: row.title,
     contentPlain: row.content_plain,
     noteDate: row.note_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
   };
+}
+
+function mapSupabaseCategory(row: SupabaseCategoryRow): NoteCategory {
+  return {
+    id: row.id,
+    title: row.title,
+    color: row.color,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
+
+function mapSupabaseSubject(row: SupabaseSubjectRow): NoteSubject {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    title: row.title,
+    description: row.description,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
+
+function normalizeLocalNotes(notes: Note[]) {
+  return notes.map((note) => ({
+    ...note,
+    subjectId: note.subjectId ?? "general-subject",
+  }));
 }
 
 function mapSupabaseFile(row: SupabaseFileRow): NoteFile {
@@ -82,9 +147,33 @@ function readLocalNotes() {
   if (!stored) return defaultNotes;
 
   try {
-    return JSON.parse(stored) as Note[];
+    return normalizeLocalNotes(JSON.parse(stored) as Note[]);
   } catch {
     return defaultNotes;
+  }
+}
+
+function readLocalCategories() {
+  const stored = window.localStorage.getItem(categoryStorageKey);
+
+  if (!stored) return defaultCategories;
+
+  try {
+    return JSON.parse(stored) as NoteCategory[];
+  } catch {
+    return defaultCategories;
+  }
+}
+
+function readLocalSubjects() {
+  const stored = window.localStorage.getItem(subjectStorageKey);
+
+  if (!stored) return defaultSubjects;
+
+  try {
+    return JSON.parse(stored) as NoteSubject[];
+  } catch {
+    return defaultSubjects;
   }
 }
 
@@ -126,8 +215,16 @@ export default function NoteManager() {
     [isSupabaseConfigured],
   );
   const [notes, setNotes] = useState<Note[]>(defaultNotes);
+  const [categories, setCategories] = useState<NoteCategory[]>(defaultCategories);
+  const [subjects, setSubjects] = useState<NoteSubject[]>(defaultSubjects);
   const [filesByNote, setFilesByNote] = useState<Record<string, NoteFile[]>>({});
   const [draft, setDraft] = useState<NoteDraft>(emptyDraft);
+  const [categoryTitle, setCategoryTitle] = useState("");
+  const [subjectDraft, setSubjectDraft] = useState({
+    categoryId: "general-category",
+    title: "",
+    description: "",
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [isReady, setIsReady] = useState(false);
@@ -138,7 +235,17 @@ export default function NoteManager() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const loadSupabaseData = useCallback(async (client: SupabaseNoteClient) => {
-    const [notesResult, filesResult] = await Promise.all([
+    const [categoriesResult, subjectsResult, notesResult, filesResult] =
+      await Promise.all([
+        client
+          .from("categories")
+          .select("*")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+        client
+          .from("subjects")
+          .select("*")
+          .order("created_at", { ascending: true }),
       client
         .from("notes")
         .select("*")
@@ -148,10 +255,15 @@ export default function NoteManager() {
         .from("files")
         .select("*")
         .order("created_at", { ascending: false }),
-    ]);
+      ]);
 
-    if (notesResult.error) {
-      setMessage(notesResult.error.message);
+    const firstError =
+      categoriesResult.error ?? subjectsResult.error ?? notesResult.error;
+
+    if (firstError) {
+      setMessage(firstError.message);
+      setCategories(readLocalCategories());
+      setSubjects(readLocalSubjects());
       setNotes(readLocalNotes());
       setFilesByNote(readLocalFiles());
       setStorageMode("local");
@@ -165,6 +277,8 @@ export default function NoteManager() {
       setFilesByNote(groupFiles((filesResult.data ?? []).map(mapSupabaseFile)));
     }
 
+    setCategories((categoriesResult.data ?? []).map(mapSupabaseCategory));
+    setSubjects((subjectsResult.data ?? []).map(mapSupabaseSubject));
     setNotes((notesResult.data ?? []).map(mapSupabaseNote));
   }, []);
 
@@ -185,6 +299,8 @@ export default function NoteManager() {
         await loadSupabaseData(client);
       } else {
         setStorageMode("local");
+        setCategories(readLocalCategories());
+        setSubjects(readLocalSubjects());
         setNotes(readLocalNotes());
         setFilesByNote(readLocalFiles());
       }
@@ -199,6 +315,8 @@ export default function NoteManager() {
 
     const timeoutId = window.setTimeout(() => {
       if (!supabase) {
+        setCategories(readLocalCategories());
+        setSubjects(readLocalSubjects());
         setNotes(readLocalNotes());
         setFilesByNote(readLocalFiles());
         setStorageMode("local");
@@ -219,6 +337,8 @@ export default function NoteManager() {
           loadSupabaseData(supabase);
           setStorageMode("supabase");
         } else {
+          setCategories(readLocalCategories());
+          setSubjects(readLocalSubjects());
           setNotes(readLocalNotes());
           setFilesByNote(readLocalFiles());
           setStorageMode("local");
@@ -241,6 +361,12 @@ export default function NoteManager() {
 
   useEffect(() => {
     if (!isReady || storageMode !== "local") return;
+    window.localStorage.setItem(categoryStorageKey, JSON.stringify(categories));
+    window.localStorage.setItem(subjectStorageKey, JSON.stringify(subjects));
+  }, [categories, isReady, storageMode, subjects]);
+
+  useEffect(() => {
+    if (!isReady || storageMode !== "local") return;
     window.localStorage.setItem(fileStorageKey, JSON.stringify(filesByNote));
   }, [filesByNote, isReady, storageMode]);
 
@@ -250,11 +376,23 @@ export default function NoteManager() {
     if (!cleanQuery) return notes;
 
     return notes.filter((note) =>
-      `${note.title} ${note.contentPlain} ${note.noteDate}`
+      `${note.title} ${note.contentPlain} ${note.noteDate} ${
+        subjects.find((subject) => subject.id === note.subjectId)?.title ?? ""
+      }`
         .toLowerCase()
         .includes(cleanQuery),
     );
-  }, [notes, query]);
+  }, [notes, query, subjects]);
+
+  const subjectById = useMemo(
+    () => new Map(subjects.map((subject) => [subject.id, subject])),
+    [subjects],
+  );
+
+  const categoryById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
 
   const selectedNote = editingId
     ? notes.find((note) => note.id === editingId) ?? null
@@ -296,6 +434,7 @@ export default function NoteManager() {
       const { data, error } = await client
         .from("notes")
         .update({
+          subject_id: nextDraft.subjectId || null,
           title: nextDraft.title,
           content_plain: nextDraft.contentPlain,
           content_json: {},
@@ -324,6 +463,7 @@ export default function NoteManager() {
       .from("notes")
       .insert({
         user_id: currentUserId,
+        subject_id: nextDraft.subjectId || null,
         title: nextDraft.title,
         content_plain: nextDraft.contentPlain,
         content_json: {},
@@ -350,6 +490,7 @@ export default function NoteManager() {
           note.id === editingId
             ? {
                 ...note,
+                subjectId: nextDraft.subjectId || null,
                 title: nextDraft.title,
                 contentPlain: nextDraft.contentPlain,
                 noteDate: nextDraft.noteDate,
@@ -365,6 +506,7 @@ export default function NoteManager() {
     setNotes((currentNotes) => [
       {
         id: createId(),
+        subjectId: nextDraft.subjectId || null,
         title: nextDraft.title,
         contentPlain: nextDraft.contentPlain,
         noteDate: nextDraft.noteDate,
@@ -379,11 +521,123 @@ export default function NoteManager() {
   function editNote(note: Note) {
     setEditingId(note.id);
     setDraft({
+      subjectId: note.subjectId ?? "",
       title: note.title,
       contentPlain: note.contentPlain,
       noteDate: note.noteDate,
     });
     setMessage("");
+  }
+
+  async function createCategory() {
+    const title = categoryTitle.trim();
+
+    if (!title) {
+      setMessage("Enter a category title.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    if (storageMode === "supabase" && supabase && userId) {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          user_id: userId,
+          title,
+          color: "#7F927F",
+          sort_order: categories.length,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        setMessage(error.message);
+        setIsSaving(false);
+        return;
+      }
+
+      const nextCategory = mapSupabaseCategory(data);
+      setCategories((currentCategories) => [...currentCategories, nextCategory]);
+      setSubjectDraft((currentDraft) => ({
+        ...currentDraft,
+        categoryId: nextCategory.id,
+      }));
+    } else {
+      const now = new Date().toISOString();
+      const nextCategory: NoteCategory = {
+        id: createId(),
+        title,
+        color: "#7F927F",
+        sortOrder: categories.length,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setCategories((currentCategories) => [...currentCategories, nextCategory]);
+      setSubjectDraft((currentDraft) => ({
+        ...currentDraft,
+        categoryId: nextCategory.id,
+      }));
+    }
+
+    setCategoryTitle("");
+    setMessage("Category created.");
+    setIsSaving(false);
+  }
+
+  async function createSubject() {
+    const title = subjectDraft.title.trim();
+    const categoryId = subjectDraft.categoryId || categories[0]?.id;
+
+    if (!title || !categoryId) {
+      setMessage("Enter a subject title and category.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    if (storageMode === "supabase" && supabase && userId) {
+      const { data, error } = await supabase
+        .from("subjects")
+        .insert({
+          user_id: userId,
+          category_id: categoryId,
+          title,
+          description: subjectDraft.description.trim() || null,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        setMessage(error.message);
+        setIsSaving(false);
+        return;
+      }
+
+      const nextSubject = mapSupabaseSubject(data);
+      setSubjects((currentSubjects) => [...currentSubjects, nextSubject]);
+      setDraft((currentDraft) => ({ ...currentDraft, subjectId: nextSubject.id }));
+    } else {
+      const now = new Date().toISOString();
+      const nextSubject: NoteSubject = {
+        id: createId(),
+        categoryId,
+        title,
+        description: subjectDraft.description.trim() || null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setSubjects((currentSubjects) => [...currentSubjects, nextSubject]);
+      setDraft((currentDraft) => ({ ...currentDraft, subjectId: nextSubject.id }));
+    }
+
+    setSubjectDraft({
+      categoryId,
+      title: "",
+      description: "",
+    });
+    setMessage("Subject created.");
+    setIsSaving(false);
   }
 
   async function deleteNote(noteId: string) {
@@ -537,6 +791,8 @@ export default function NoteManager() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex">
+              <SummaryPill label="Categories" value={`${categories.length}`} />
+              <SummaryPill label="Subjects" value={`${subjects.length}`} />
               <SummaryPill label="전체" value={`${notes.length}`} />
               <SummaryPill label="검색 결과" value={`${filteredNotes.length}`} />
             </div>
@@ -545,6 +801,105 @@ export default function NoteManager() {
             저장소: {storageLabel}
           </div>
         </header>
+
+        <section className="grid gap-5 lg:grid-cols-2">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:p-5">
+            <h2 className="text-lg font-bold text-[var(--text)]">Categories</h2>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <input
+                className="h-11 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                placeholder="Category title"
+                value={categoryTitle}
+                onChange={(event) => setCategoryTitle(event.target.value)}
+              />
+              <button
+                className="h-11 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-4 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSaving}
+                type="button"
+                onClick={createCategory}
+              >
+                Add
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <span
+                  className="rounded-full border border-[var(--border)] bg-[var(--summary-bg)] px-3 py-1 text-xs font-bold text-[var(--text)]"
+                  key={category.id}
+                >
+                  {category.title}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:p-5">
+            <h2 className="text-lg font-bold text-[var(--text)]">Subjects</h2>
+            <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(120px,0.75fr)_minmax(120px,1fr)]">
+              <select
+                className="h-11 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                value={subjectDraft.categoryId}
+                onChange={(event) =>
+                  setSubjectDraft((currentDraft) => ({
+                    ...currentDraft,
+                    categoryId: event.target.value,
+                  }))
+                }
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="h-11 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                placeholder="Subject title"
+                value={subjectDraft.title}
+                onChange={(event) =>
+                  setSubjectDraft((currentDraft) => ({
+                    ...currentDraft,
+                    title: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                className="h-11 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                placeholder="Description"
+                value={subjectDraft.description}
+                onChange={(event) =>
+                  setSubjectDraft((currentDraft) => ({
+                    ...currentDraft,
+                    description: event.target.value,
+                  }))
+                }
+              />
+              <button
+                className="h-11 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-4 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSaving}
+                type="button"
+                onClick={createSubject}
+              >
+                Add
+              </button>
+            </div>
+            <div className="mt-4 grid gap-2">
+              {subjects.map((subject) => (
+                <div
+                  className="rounded-md border border-[var(--border)] bg-[var(--summary-bg)] px-3 py-2 text-sm text-[var(--soft-text)]"
+                  key={subject.id}
+                >
+                  <span className="font-bold text-[var(--text)]">{subject.title}</span>
+                  <span className="ml-2 text-xs font-semibold text-[var(--muted)]">
+                    {categoryById.get(subject.categoryId)?.title ?? "No category"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className="grid gap-5 lg:grid-cols-[minmax(320px,0.42fr)_minmax(0,0.58fr)]">
           <form
@@ -561,6 +916,30 @@ export default function NoteManager() {
                 </span>
               ) : null}
             </div>
+
+            <label className="mt-4 block">
+              <span className="text-sm font-semibold text-[var(--soft-text)]">
+                Subject
+              </span>
+              <select
+                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                value={draft.subjectId}
+                onChange={(event) =>
+                  setDraft((currentDraft) => ({
+                    ...currentDraft,
+                    subjectId: event.target.value,
+                  }))
+                }
+              >
+                <option value="">No subject</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {categoryById.get(subject.categoryId)?.title ?? "No category"} /{" "}
+                    {subject.title}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="mt-4 block">
               <span className="text-sm font-semibold text-[var(--soft-text)]">제목</span>
@@ -646,11 +1025,15 @@ export default function NoteManager() {
               {filteredNotes.length > 0 ? (
                 filteredNotes.map((note) => (
                   <NoteCard
+                    category={categoryById.get(
+                      subjectById.get(note.subjectId ?? "")?.categoryId ?? "",
+                    )}
                     editingId={editingId}
                     files={filesByNote[note.id] ?? []}
                     isSaving={isSaving}
                     key={note.id}
                     note={note}
+                    subject={subjectById.get(note.subjectId ?? "")}
                     deleteNote={deleteNote}
                     editNote={editNote}
                     openFile={openFile}
@@ -671,19 +1054,23 @@ export default function NoteManager() {
 }
 
 function NoteCard({
+  category,
   editingId,
   files,
   isSaving,
   note,
+  subject,
   deleteNote,
   editNote,
   openFile,
   uploadNoteFile,
 }: {
+  category: NoteCategory | undefined;
   editingId: string | null;
   files: NoteFile[];
   isSaving: boolean;
   note: Note;
+  subject: NoteSubject | undefined;
   deleteNote: (noteId: string) => void;
   editNote: (note: Note) => void;
   openFile: (file: NoteFile) => void;
@@ -700,6 +1087,9 @@ function NoteCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-bold text-[var(--muted)]">{note.noteDate}</p>
+          <p className="mt-1 text-xs font-semibold text-[var(--primary)]">
+            {category?.title ?? "No category"} / {subject?.title ?? "No subject"}
+          </p>
           <h3 className="mt-1 break-words text-base font-bold text-[var(--text)]">
             {note.title}
           </h3>
