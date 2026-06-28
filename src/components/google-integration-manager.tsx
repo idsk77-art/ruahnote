@@ -72,6 +72,21 @@ function readableError(error: unknown, fallback: string) {
   return JSON.stringify(error);
 }
 
+function StatusMessage({
+  tone = "danger",
+  children,
+}: {
+  tone?: "danger" | "success";
+  children: string;
+}) {
+  const className =
+    tone === "success"
+      ? "mt-4 rounded-md border border-[var(--primary)] bg-[var(--control-bg)] px-3 py-2 text-sm font-semibold text-[var(--text)]"
+      : "mt-4 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm font-semibold text-[var(--danger-text)]";
+
+  return <p className={className}>{children}</p>;
+}
+
 export default function GoogleIntegrationManager() {
   const isSupabaseConfigured = hasBrowserSupabaseConfig();
   const supabase = useMemo(
@@ -92,6 +107,8 @@ export default function GoogleIntegrationManager() {
   const [draftSubject, setDraftSubject] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [message, setMessage] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [gmailMessage, setGmailMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   async function loadOAuthUrl() {
@@ -197,7 +214,7 @@ export default function GoogleIntegrationManager() {
 
   async function loadContacts() {
     setIsLoading(true);
-    setMessage("");
+    setContactMessage("");
 
     const { data } = supabase
       ? await supabase.auth.getSession()
@@ -205,7 +222,7 @@ export default function GoogleIntegrationManager() {
     const accessToken = data.session?.access_token;
 
     if (!accessToken) {
-      setMessage("먼저 RuahNote에 로그인하세요.");
+      setContactMessage("먼저 RuahNote에 로그인하세요.");
       setIsLoading(false);
       return;
     }
@@ -230,12 +247,13 @@ export default function GoogleIntegrationManager() {
         dataJson?.error,
         "Google Contacts 조회를 완료하지 못했습니다.",
       );
-      setMessage(`Google Contacts 오류: ${errorMessage}`);
+      setContactMessage(`Google Contacts 오류: ${errorMessage}`);
       setIsLoading(false);
       return;
     }
 
     setContacts(dataJson?.contacts ?? []);
+    setContactMessage("Google Contacts 조회를 완료했습니다.");
     setIsLoading(false);
   }
 
@@ -249,11 +267,11 @@ export default function GoogleIntegrationManager() {
 
   async function loadGmailMessages() {
     setIsLoading(true);
-    setMessage("");
+    setGmailMessage("");
 
     const accessToken = await getRuahNoteAccessToken();
     if (!accessToken) {
-      setMessage("먼저 RuahNote에 로그인하세요.");
+      setGmailMessage("먼저 RuahNote에 로그인하세요.");
       setIsLoading(false);
       return;
     }
@@ -278,23 +296,24 @@ export default function GoogleIntegrationManager() {
         dataJson?.error,
         "Gmail 목록 조회를 완료하지 못했습니다.",
       );
-      setMessage(`Gmail 오류: ${errorMessage}`);
+      setGmailMessage(`Gmail 오류: ${errorMessage}`);
       setIsLoading(false);
       return;
     }
 
     setGmailMessages(dataJson?.messages ?? []);
     setSelectedGmailMessage(null);
+    setGmailMessage("Gmail 목록을 조회했습니다.");
     setIsLoading(false);
   }
 
   async function loadGmailMessage(messageId: string) {
     setIsLoading(true);
-    setMessage("");
+    setGmailMessage("");
 
     const accessToken = await getRuahNoteAccessToken();
     if (!accessToken) {
-      setMessage("먼저 RuahNote에 로그인하세요.");
+      setGmailMessage("먼저 RuahNote에 로그인하세요.");
       setIsLoading(false);
       return;
     }
@@ -316,22 +335,23 @@ export default function GoogleIntegrationManager() {
         dataJson?.error,
         "Gmail 상세 조회를 완료하지 못했습니다.",
       );
-      setMessage(`Gmail 오류: ${errorMessage}`);
+      setGmailMessage(`Gmail 오류: ${errorMessage}`);
       setIsLoading(false);
       return;
     }
 
     setSelectedGmailMessage(dataJson?.message ?? null);
+    setGmailMessage("Gmail 상세를 조회했습니다.");
     setIsLoading(false);
   }
 
   async function createGmailDraft() {
     setIsLoading(true);
-    setMessage("");
+    setGmailMessage("");
 
     const accessToken = await getRuahNoteAccessToken();
     if (!accessToken) {
-      setMessage("먼저 RuahNote에 로그인하세요.");
+      setGmailMessage("먼저 RuahNote에 로그인하세요.");
       setIsLoading(false);
       return;
     }
@@ -357,12 +377,12 @@ export default function GoogleIntegrationManager() {
         dataJson?.error,
         "Gmail 초안 생성을 완료하지 못했습니다.",
       );
-      setMessage(`Gmail 오류: ${errorMessage}`);
+      setGmailMessage(`Gmail 오류: ${errorMessage}`);
       setIsLoading(false);
       return;
     }
 
-    setMessage("Gmail 초안을 생성했습니다.");
+    setGmailMessage("Gmail 초안을 생성했습니다.");
     setDraftTo("");
     setDraftSubject("");
     setDraftBody("");
@@ -409,9 +429,7 @@ export default function GoogleIntegrationManager() {
           </div>
 
           {message ? (
-            <p className="mt-4 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm font-semibold text-[var(--danger-text)]">
-              {message}
-            </p>
+            <StatusMessage>{message}</StatusMessage>
           ) : null}
 
           {oauthData?.authUrl ? (
@@ -541,6 +559,14 @@ export default function GoogleIntegrationManager() {
               </div>
             </div>
 
+            {contactMessage ? (
+              <StatusMessage
+                tone={contactMessage.includes("오류") ? "danger" : "success"}
+              >
+                {contactMessage}
+              </StatusMessage>
+            ) : null}
+
             {contacts.length > 0 ? (
               <ul className="mt-3 grid gap-2 md:grid-cols-2">
                 {contacts.map((contact) => (
@@ -596,6 +622,14 @@ export default function GoogleIntegrationManager() {
                 </button>
               </div>
             </div>
+
+            {gmailMessage ? (
+              <StatusMessage
+                tone={gmailMessage.includes("오류") ? "danger" : "success"}
+              >
+                {gmailMessage}
+              </StatusMessage>
+            ) : null}
 
             {gmailMessages.length > 0 ? (
               <div className="mt-3 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
