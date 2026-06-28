@@ -6,6 +6,7 @@ const requiredFiles = [
   "render.yaml",
   "scripts/apply-supabase-migrations.mjs",
   "scripts/render-start.mjs",
+  "scripts/check-production-url.mjs",
   "scripts/set-admin-user.mjs",
   "supabase/migrations/0001_initial_schema.sql",
   "supabase/migrations/0002_profiles_and_storage.sql",
@@ -29,6 +30,7 @@ const requiredPackageScripts = [
   "db:migrate",
   "admin:set",
   "render:start",
+  "deploy:check",
   "setup:check",
 ];
 

@@ -58,6 +58,7 @@ npm.cmd run admin:set -- user@example.com
 npm run lint
 npm run build
 npm run setup:check
+npm run deploy:check
 ```
 
 On Windows PowerShell execution-policy restricted environments, use:
@@ -66,6 +67,7 @@ On Windows PowerShell execution-policy restricted environments, use:
 npm.cmd run lint
 npm.cmd run build
 npm.cmd run setup:check
+npm.cmd run deploy:check
 ```
 
 ## Render

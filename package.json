@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "render:start": "node scripts/render-start.mjs",
+    "deploy:check": "node scripts/check-production-url.mjs",
     "lint": "eslint",
     "db:migrate": "node scripts/apply-supabase-migrations.mjs",
     "admin:set": "node scripts/set-admin-user.mjs",
