@@ -48,6 +48,13 @@ const openProjectStorageKey = "ruahnote.project.open-projects.v3";
 const defaultOwner = "KingAaron";
 const WORK_HOURS_PER_DAY = 8;
 
+const statusRank: Record<TaskStatus, number> = {
+  planned: 0,
+  blocked: 1,
+  active: 2,
+  done: 3,
+};
+
 const statusLabels: Record<TaskStatus, string> = {
   planned: "예정",
   active: "진행중",
@@ -120,7 +127,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "lint/build 통과, 기본 폴더 구조 생성",
     milestone: "M1 준비",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -134,7 +141,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "주요 메뉴 이동과 기본 레이아웃 표시",
     milestone: "M1. 기본 앱 골격",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -148,7 +155,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "로컬 migration 생성 및 DB 반영",
     milestone: "M2 준비",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -162,7 +169,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "로그인 사용자 기준 데이터 분리 가능",
     milestone: "M2 준비",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -176,7 +183,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "카테고리 > 과목/프로젝트 계층 생성 가능",
     milestone: "M2. 데이터 기반 노트 MVP",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -190,7 +197,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "과목 하위 노트 작성 흐름 완성",
     milestone: "M2. 데이터 기반 노트 MVP",
     priority: "high",
-    status: "planned",
+    status: "done",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -204,7 +211,7 @@ const defaultTasks: ProjectTask[] = [
     doneCriteria: "노트 본문 작성/수정/저장 가능",
     milestone: "M3 준비",
     priority: "high",
-    status: "planned",
+    status: "active",
     assigneeIds: ["kingaaron"],
     note: "",
   },
@@ -529,6 +536,10 @@ function mergeStoredTasks(
     return {
       ...task,
       ...stored,
+      status:
+        stored?.status && statusRank[stored.status] > statusRank[task.status]
+          ? stored.status
+          : task.status,
       projectId: stored?.projectId ?? stored?.categoryId ?? task.projectId,
       schedule,
       assigneeIds:

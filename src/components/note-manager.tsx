@@ -34,6 +34,7 @@ const emptyDraft: NoteDraft = {
   title: "",
   contentPlain: "",
   noteDate: today,
+  sessionNumber: "",
 };
 
 const defaultCategories: NoteCategory[] = [
@@ -66,6 +67,8 @@ const defaultNotes: Note[] = [
     contentPlain:
       "로그인된 Supabase 세션이 있으면 노트와 파일을 DB/Storage에 저장하고, 설정 전에는 LocalStorage로 동작합니다.",
     noteDate: today,
+    sessionNumber: 1,
+    isFavorite: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -85,6 +88,7 @@ function normalizeDraft(draft: NoteDraft): NoteDraft {
     title: draft.title.trim(),
     contentPlain: draft.contentPlain.trim(),
     noteDate: draft.noteDate || today,
+    sessionNumber: draft.sessionNumber.trim(),
   };
 }
 
@@ -95,6 +99,8 @@ function mapSupabaseNote(row: SupabaseNoteRow): Note {
     title: row.title,
     contentPlain: row.content_plain,
     noteDate: row.note_date,
+    sessionNumber: row.session_number,
+    isFavorite: row.is_favorite,
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
   };
@@ -126,6 +132,8 @@ function normalizeLocalNotes(notes: Note[]) {
   return notes.map((note) => ({
     ...note,
     subjectId: note.subjectId ?? "general-subject",
+    sessionNumber: note.sessionNumber ?? null,
+    isFavorite: note.isFavorite ?? false,
   }));
 }
 
@@ -206,6 +214,22 @@ function readableSize(sizeBytes: number | null) {
 
 function safeStorageName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function parseSessionNumber(value: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.round(parsed);
+}
+
+function buildAutoTitle(
+  draft: NoteDraft,
+  subject: NoteSubject | undefined,
+) {
+  if (draft.title) return draft.title;
+
+  const sessionLabel = draft.sessionNumber ? ` ${draft.sessionNumber}회차` : "";
+  return `${subject?.title ?? "노트"}${sessionLabel} - ${draft.noteDate}`;
 }
 
 export default function NoteManager() {
@@ -406,7 +430,14 @@ export default function NoteManager() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextDraft = normalizeDraft(draft);
+    const normalizedDraft = normalizeDraft(draft);
+    const nextDraft = {
+      ...normalizedDraft,
+      title: buildAutoTitle(
+        normalizedDraft,
+        subjectById.get(normalizedDraft.subjectId),
+      ),
+    };
 
     if (!nextDraft.title) {
       setMessage("제목을 입력하세요.");
@@ -439,6 +470,7 @@ export default function NoteManager() {
           content_plain: nextDraft.contentPlain,
           content_json: {},
           note_date: nextDraft.noteDate,
+          session_number: parseSessionNumber(nextDraft.sessionNumber),
         })
         .eq("id", editingId)
         .eq("user_id", currentUserId)
@@ -468,6 +500,8 @@ export default function NoteManager() {
         content_plain: nextDraft.contentPlain,
         content_json: {},
         note_date: nextDraft.noteDate,
+        session_number: parseSessionNumber(nextDraft.sessionNumber),
+        is_favorite: false,
       })
       .select("*")
       .single();
@@ -494,6 +528,7 @@ export default function NoteManager() {
                 title: nextDraft.title,
                 contentPlain: nextDraft.contentPlain,
                 noteDate: nextDraft.noteDate,
+                sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
                 updatedAt: now,
               }
             : note,
@@ -510,6 +545,8 @@ export default function NoteManager() {
         title: nextDraft.title,
         contentPlain: nextDraft.contentPlain,
         noteDate: nextDraft.noteDate,
+        sessionNumber: parseSessionNumber(nextDraft.sessionNumber),
+        isFavorite: false,
         createdAt: now,
         updatedAt: now,
       },
@@ -525,6 +562,7 @@ export default function NoteManager() {
       title: note.title,
       contentPlain: note.contentPlain,
       noteDate: note.noteDate,
+      sessionNumber: note.sessionNumber ? String(note.sessionNumber) : "",
     });
     setMessage("");
   }
@@ -681,6 +719,39 @@ export default function NoteManager() {
     }
 
     setIsSaving(false);
+  }
+
+  async function toggleFavorite(note: Note) {
+    const nextFavorite = !note.isFavorite;
+
+    if (storageMode === "supabase" && supabase && userId) {
+      const { data, error } = await supabase
+        .from("notes")
+        .update({ is_favorite: nextFavorite })
+        .eq("id", note.id)
+        .eq("user_id", userId)
+        .select("*")
+        .single();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      setNotes((currentNotes) =>
+        currentNotes.map((currentNote) =>
+          currentNote.id === note.id ? mapSupabaseNote(data) : currentNote,
+        ),
+      );
+    } else {
+      setNotes((currentNotes) =>
+        currentNotes.map((currentNote) =>
+          currentNote.id === note.id
+            ? { ...currentNote, isFavorite: nextFavorite }
+            : currentNote,
+        ),
+      );
+    }
   }
 
   async function uploadNoteFile(noteId: string, file: File | undefined) {
@@ -972,6 +1043,23 @@ export default function NoteManager() {
             </label>
 
             <label className="mt-4 block">
+              <span className="text-sm font-semibold text-[var(--soft-text)]">회차</span>
+              <input
+                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+                min="1"
+                placeholder="예: 1"
+                type="number"
+                value={draft.sessionNumber}
+                onChange={(event) =>
+                  setDraft((currentDraft) => ({
+                    ...currentDraft,
+                    sessionNumber: event.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <label className="mt-4 block">
               <span className="text-sm font-semibold text-[var(--soft-text)]">내용</span>
               <textarea
                 className="mt-2 min-h-56 w-full resize-y rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 py-3 text-sm leading-6 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--focus-ring)]"
@@ -1037,6 +1125,7 @@ export default function NoteManager() {
                     deleteNote={deleteNote}
                     editNote={editNote}
                     openFile={openFile}
+                    toggleFavorite={toggleFavorite}
                     uploadNoteFile={uploadNoteFile}
                   />
                 ))
@@ -1063,6 +1152,7 @@ function NoteCard({
   deleteNote,
   editNote,
   openFile,
+  toggleFavorite,
   uploadNoteFile,
 }: {
   category: NoteCategory | undefined;
@@ -1074,6 +1164,7 @@ function NoteCard({
   deleteNote: (noteId: string) => void;
   editNote: (note: Note) => void;
   openFile: (file: NoteFile) => void;
+  toggleFavorite: (note: Note) => void;
   uploadNoteFile: (noteId: string, file: File | undefined) => void;
 }) {
   return (
@@ -1089,12 +1180,20 @@ function NoteCard({
           <p className="text-xs font-bold text-[var(--muted)]">{note.noteDate}</p>
           <p className="mt-1 text-xs font-semibold text-[var(--primary)]">
             {category?.title ?? "No category"} / {subject?.title ?? "No subject"}
+            {note.sessionNumber ? ` / ${note.sessionNumber}회차` : ""}
           </p>
           <h3 className="mt-1 break-words text-base font-bold text-[var(--text)]">
             {note.title}
           </h3>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            className="h-9 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+            type="button"
+            onClick={() => toggleFavorite(note)}
+          >
+            {note.isFavorite ? "★" : "☆"}
+          </button>
           <label className="grid h-9 cursor-pointer place-items-center rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-3 text-sm font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]">
             첨부
             <input

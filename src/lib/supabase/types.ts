@@ -99,6 +99,8 @@ export type Database = {
           content_json: Json;
           content_plain: string;
           note_date: string;
+          session_number: number | null;
+          is_favorite: boolean;
         };
         Insert: {
           id?: string;
@@ -108,6 +110,8 @@ export type Database = {
           content_json?: Json;
           content_plain?: string;
           note_date?: string;
+          session_number?: number | null;
+          is_favorite?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -117,6 +121,8 @@ export type Database = {
           content_json?: Json;
           content_plain?: string;
           note_date?: string;
+          session_number?: number | null;
+          is_favorite?: boolean;
           updated_at?: string;
         };
         Relationships: [];

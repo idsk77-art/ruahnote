@@ -4,6 +4,8 @@ export type Note = {
   title: string;
   contentPlain: string;
   noteDate: string;
+  sessionNumber: number | null;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -13,6 +15,7 @@ export type NoteDraft = {
   title: string;
   contentPlain: string;
   noteDate: string;
+  sessionNumber: string;
 };
 
 export type NoteCategory = {

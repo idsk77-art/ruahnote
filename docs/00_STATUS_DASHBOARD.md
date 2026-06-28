@@ -33,6 +33,8 @@
 - [x] 운영 `/api/health` 200 확인
 - [x] Notes category/subject local + Supabase CRUD path
 - [x] Notes subject assignment UI
+- [x] Notes date/session/favorite metadata
+- [x] Supabase migration 0004 note core metadata 적용
 
 ## 진행 중
 
@@ -43,6 +45,7 @@
 - [ ] 실제 브라우저에서 Notes DB CRUD 검증
 - [ ] 실제 브라우저에서 파일 업로드 검증
 - [ ] 노트 코어 브라우저 실사용 검증
+- [ ] 노트 에디터 본문/체크리스트 UX
 
 ## 현재 확인 결과
 
@@ -59,6 +62,7 @@
 | 운영 `/` | 200 |
 | 운영 `/api/health` | 200 |
 | 로컬 `/notes` | 200, category/subject UI 포함 |
+| Supabase migrations | 0001/0002/0003/0004 모두 적용됨 |
 
 ## 다음 작업
 
@@ -81,6 +85,7 @@
 
 | 날짜 | 커밋 | 내용 |
 |---|---|---|
+| 2026-06-28 | pending | 날짜별 노트 CRUD 메타데이터 추가, 노트 에디터 진행중 전환 |
 | 2026-06-28 | pending | Notes category/subject CRUD path 추가 |
 | 2026-06-28 | pending | 운영 URL을 `ruahnote-bp6m.onrender.com`으로 정정 |
 | 2026-06-28 | `9bd9162` | 배포 상태 문서 갱신 |
