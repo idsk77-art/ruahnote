@@ -13,6 +13,7 @@
 - [ ] 실제 브라우저에서 category > subject > note 흐름 검증
 - [ ] 카메라/OCR 기반 구현
 - [ ] 카메라/OCR 브라우저 권한 검증
+- [ ] OpenAI API key 운영 등록 후 OCR 실사용 검증
 
 ## Medium Priority
 
@@ -33,6 +34,8 @@
 - [x] 첨부 파일명 검색 보강
 - [x] 첨부/검색 작업리스트 완료 전환
 - [x] 노트 카드 Camera image capture input 구현
+- [x] `/api/ocr` OpenAI OCR route 구현
+- [x] 이미지 첨부 OCR 실행 버튼 구현
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증

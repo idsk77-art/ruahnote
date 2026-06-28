@@ -268,6 +268,10 @@ function readableSize(sizeBytes: number | null) {
   return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function isImageFile(file: NoteFile) {
+  return file.mimeType?.startsWith("image/") ?? false;
+}
+
 function safeStorageName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
@@ -930,6 +934,81 @@ export default function NoteManager() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function appendOcrText(note: Note, file: NoteFile) {
+    if (!isImageFile(file)) {
+      setMessage("OCR only supports image attachments.");
+      return;
+    }
+
+    if (storageMode !== "supabase" || !supabase || !userId) {
+      setMessage("OCR requires a logged-in Supabase session and uploaded image.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const signedUrlResult = await supabase.storage
+      .from(storageBucket)
+      .createSignedUrl(file.filePath, 120);
+
+    if (signedUrlResult.error) {
+      setMessage(signedUrlResult.error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    const ocrResponse = await fetch("/api/ocr", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ imageUrl: signedUrlResult.data.signedUrl }),
+    });
+    const ocrData = (await ocrResponse.json().catch(() => null)) as
+      | { text?: string; error?: unknown }
+      | null;
+
+    if (!ocrResponse.ok) {
+      setMessage(
+        typeof ocrData?.error === "string"
+          ? ocrData.error
+          : "OCR request failed.",
+      );
+      setIsSaving(false);
+      return;
+    }
+
+    const extractedText = ocrData?.text?.trim();
+    if (!extractedText) {
+      setMessage("OCR did not find readable text.");
+      setIsSaving(false);
+      return;
+    }
+
+    const nextContent = [note.contentPlain, `OCR: ${file.fileName}`, extractedText]
+      .filter(Boolean)
+      .join("\n\n");
+    const { data, error } = await supabase
+      .from("notes")
+      .update({ content_plain: nextContent })
+      .eq("id", note.id)
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (error) {
+      setMessage(error.message);
+      setIsSaving(false);
+      return;
+    }
+
+    setNotes((currentNotes) =>
+      currentNotes.map((currentNote) =>
+        currentNote.id === note.id ? mapSupabaseNote(data) : currentNote,
+      ),
+    );
+    setMessage("OCR text appended to the note.");
+    setIsSaving(false);
+  }
+
   const storageLabel =
     storageMode === "supabase"
       ? `Supabase DB/Storage${userEmail ? ` | ${userEmail}` : ""}`
@@ -1269,6 +1348,7 @@ export default function NoteManager() {
                     deleteNote={deleteNote}
                     editNote={editNote}
                     openFile={openFile}
+                    appendOcrText={appendOcrText}
                     toggleFavorite={toggleFavorite}
                     uploadNoteFile={uploadNoteFile}
                   />
@@ -1296,6 +1376,7 @@ function NoteCard({
   deleteNote,
   editNote,
   openFile,
+  appendOcrText,
   toggleFavorite,
   uploadNoteFile,
 }: {
@@ -1308,6 +1389,7 @@ function NoteCard({
   deleteNote: (noteId: string) => void;
   editNote: (note: Note) => void;
   openFile: (file: NoteFile) => void;
+  appendOcrText: (note: Note, file: NoteFile) => void;
   toggleFavorite: (note: Note) => void;
   uploadNoteFile: (noteId: string, file: File | undefined) => void;
 }) {
@@ -1415,19 +1497,32 @@ function NoteCard({
           <p className="text-xs font-bold text-[var(--muted)]">첨부 파일</p>
           <div className="mt-2 grid gap-2">
             {files.map((file) => (
-              <button
-                className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 py-2 text-left transition hover:bg-[var(--hover)]"
+              <div
+                className="flex min-w-0 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--control-bg)] px-3 py-2"
                 key={file.id}
-                type="button"
-                onClick={() => openFile(file)}
               >
-                <span className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">
-                  {file.fileName}
-                </span>
-                <span className="shrink-0 text-xs font-bold text-[var(--muted)]">
-                  {readableSize(file.sizeBytes)}
-                </span>
-              </button>
+                <button
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+                  type="button"
+                  onClick={() => openFile(file)}
+                >
+                  <span className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">
+                    {file.fileName}
+                  </span>
+                  <span className="shrink-0 text-xs font-bold text-[var(--muted)]">
+                    {readableSize(file.sizeBytes)}
+                  </span>
+                </button>
+                {isImageFile(file) ? (
+                  <button
+                    className="h-8 shrink-0 rounded-md border border-[var(--button-border)] bg-[var(--button-bg)] px-2 text-xs font-bold text-[var(--button-text)] transition hover:bg-[var(--button-hover)]"
+                    type="button"
+                    onClick={() => appendOcrText(note, file)}
+                  >
+                    OCR
+                  </button>
+                ) : null}
+              </div>
             ))}
           </div>
         </div>

@@ -39,6 +39,8 @@
 - [x] Notes search includes attached file metadata
 - [x] 첨부/검색 작업리스트 완료 전환
 - [x] 노트 카드 Camera image capture input
+- [x] `/api/ocr` OpenAI OCR route
+- [x] 이미지 첨부 OCR 실행 버튼
 
 ## 진행 중
 
@@ -51,6 +53,7 @@
 - [ ] 노트 코어 브라우저 실사용 검증
 - [ ] 카메라/OCR 기반 구현
 - [ ] 카메라/OCR 브라우저 권한 검증
+- [ ] OpenAI API key 운영 등록 후 OCR 실사용 검증
 
 ## 현재 확인 결과
 
@@ -70,6 +73,7 @@
 | Supabase migrations | 0001/0002/0003/0004 모두 적용됨 |
 | 작업리스트 상태 | 첨부/검색 완료, 카메라/OCR 진행중 |
 | 로컬 `/notes` Camera UI | 구현됨 |
+| 로컬 `/api/ocr` | route 구현됨, OpenAI key 필요 |
 
 ## 다음 작업
 
@@ -92,6 +96,7 @@
 
 | 날짜 | 커밋 | 내용 |
 |---|---|---|
+| 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |
 | 2026-06-28 | pending | 첨부/검색 완료 처리, 카메라/OCR 진행중 전환 |
 | 2026-06-28 | pending | 노트 에디터 체크리스트 저장 및 첨부 검색 보강 |

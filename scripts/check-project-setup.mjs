@@ -13,6 +13,7 @@ const requiredFiles = [
   "supabase/migrations/0003_admin_roles.sql",
   "supabase/migrations/0004_note_core_metadata.sql",
   "src/app/api/health/route.ts",
+  "src/app/api/ocr/route.ts",
   "src/app/admin/page.tsx",
 ];
 
