@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { hasBrowserSupabaseConfig } from "@/lib/supabase/config";
 
-const adminPassword = "ruahnote-admin";
+const adminPasswords = ["ruahnote-admin", "admin"];
 const adminStorageKey = "ruahnote.admin.isLoggedIn.v1";
 
 type CheckResult = {
@@ -37,7 +37,9 @@ type HealthResponse = {
 };
 
 function verifyAdminPassword(password: string) {
-  return password === adminPassword;
+  const normalizedPassword = password.trim().toLowerCase();
+
+  return adminPasswords.includes(normalizedPassword);
 }
 
 const summaryItems = [
@@ -272,7 +274,8 @@ function LoginCard({
         <p className="text-sm font-semibold text-[var(--primary)]">RuahNote Admin</p>
         <h1 className="mt-2 text-2xl font-bold text-[var(--text)]">관리자 로그인</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Supabase admin role 또는 임시 관리자 비밀번호로 접근합니다.
+          Supabase admin role 또는 임시 관리자 비밀번호로 접근합니다. 입력값의
+          앞뒤 공백은 자동으로 무시됩니다.
         </p>
         <p className="mt-3 rounded-md border border-[var(--border)] bg-[var(--summary-bg)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">
           {authStatus}
