@@ -43,32 +43,79 @@ function verifyAdminPassword(password: string) {
 const summaryItems = [
   { label: "프로젝트명", value: "RuahNote v1.0" },
   { label: "현재 버전", value: "v0.1.0" },
-  { label: "배포 상태", value: "Live" },
+  { label: "현재 단계", value: "통합 QA / 운영 검증" },
+  { label: "전체 진행률", value: "78%" },
   { label: "운영 URL", value: "https://ruahnote-bp6m.onrender.com" },
-  { label: "GitHub", value: "idsk77-art/ruahnote" },
 ];
 
-const projectProgress = {
-  value: 70,
-  done: [
-    "Git 설치",
-    "GitHub 연결",
-    "Render 배포",
-    "개발자 Admin 모드",
-    "Supabase DB/Auth/Storage 기반",
-    "Notes CRUD",
-    "파일 첨부",
-    "운영 Health API",
+const stageProgress = {
+  value: 78,
+  stages: [
+    {
+      title: "1. 개발 환경/배포 기반",
+      status: "done",
+      progress: 100,
+      items: ["Next.js 프로젝트", "GitHub 연결", "Render 기본 배포", "운영 점검 API"],
+      next: "운영 env true 확인만 유지 점검",
+    },
+    {
+      title: "2. Supabase/Auth/Admin",
+      status: "active",
+      progress: 82,
+      items: ["DB/Auth/Storage 코드", "migrations 0001-0005", "admin role 스크립트"],
+      next: "회원가입 후 첫 admin 지정 및 브라우저 권한 검증",
+    },
+    {
+      title: "3. 노트 코어",
+      status: "active",
+      progress: 88,
+      items: ["카테고리/과목", "날짜별 노트 CRUD", "에디터/체크리스트", "첨부 검색"],
+      next: "실제 브라우저 DB CRUD와 파일 업로드 검증",
+    },
+    {
+      title: "4. 자료 처리",
+      status: "active",
+      progress: 76,
+      items: ["카메라 입력", "OCR route", "스캔 이미지 PDF export"],
+      next: "브라우저 권한, OpenAI key 등록 후 OCR 실사용 검증",
+    },
+    {
+      title: "5. 과제 관리",
+      status: "active",
+      progress: 86,
+      items: ["과제 CRUD", "상태 칸반", "후보 등록/중복 병합", "노트 연결"],
+      next: "과제 생성부터 완료 보관까지 실사용 QA",
+    },
+    {
+      title: "6. 녹음/STT/AI 강의노트",
+      status: "active",
+      progress: 72,
+      items: ["오디오 첨부/재생", "타임라인 메모", "STT route", "AI 강의노트 route"],
+      next: "OpenAI key 등록 후 STT/AI 결과 저장 검증",
+    },
+    {
+      title: "7. Google 연동",
+      status: "active",
+      progress: 68,
+      items: ["OAuth scaffold", "Calendar", "Contacts", "Gmail 목록/상세/초안"],
+      next: "Google Client/Secret, redirect URI, token key 등록 후 운영 검증",
+    },
+    {
+      title: "8. v1.0 릴리즈",
+      status: "planned",
+      progress: 35,
+      items: ["통합 Dashboard", "운영 문서", "배포 URL 확인"],
+      next: "통합 QA 체크리스트 완료, 릴리즈 노트, v1.0 태그",
+    },
   ],
-  active: ["Render 환경변수 등록", "브라우저 세션 검증", "첫 admin 지정"],
-  planned: ["AI 요약", "OpenAI 사용량 추적", "Google 연동", "OCR/STT"],
 };
 
 const commits = [
+  "feat: add integrated operations dashboard",
+  "chore: move project schedule out of primary flow",
   "chore: add render start wrapper",
   "docs: record render 404 recovery steps",
-  "feat: add supabase auth notes and operations foundation",
-  "feat: add developer admin dashboard",
+  "feat: add google integrations and gmail workspace",
 ];
 
 const todos = {
@@ -77,13 +124,14 @@ const todos = {
     "Render /api/health env true 확인",
     "첫 admin 사용자 지정",
     "브라우저에서 Notes DB/Storage 검증",
+    "Google OAuth 운영 검증",
   ],
   Medium: [
-    "임시 admin fallback 제거",
-    "Render 배포 로그 자동 연동",
-    "OpenAI 사용량 실제 추적",
+    "OpenAI OCR/STT/AI 실사용 검증",
+    "과제/후보/녹음 흐름 QA",
+    "운영 매뉴얼 보강",
   ],
-  Low: ["관리자 차트 추가", "UI 컴포넌트 분리", "다크모드 정리"],
+  Low: ["UI 컴포넌트 분리", "공통 타입/파일 정리", "모바일 UI 보완"],
 };
 
 export default function AdminPage() {
@@ -391,55 +439,71 @@ function ProgressCard() {
   return (
     <article className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:p-5">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-bold text-[var(--text)]">프로젝트 진행률</h2>
+        <h2 className="text-lg font-bold text-[var(--text)]">전체 작업 단계</h2>
         <span className="rounded-full bg-[var(--summary-bg)] px-3 py-1 text-sm font-bold text-[var(--primary)]">
-          {projectProgress.value}%
+          {stageProgress.value}%
         </span>
       </div>
       <div className="mt-4 h-4 overflow-hidden rounded-full bg-[var(--track)]">
         <div
           className="h-full rounded-full bg-[var(--primary)] transition-all"
-          style={{ width: `${projectProgress.value}%` }}
+          style={{ width: `${stageProgress.value}%` }}
         />
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <ProgressList title="완료" tone="done" items={projectProgress.done} />
-        <ProgressList title="진행 중" tone="active" items={projectProgress.active} />
-        <ProgressList title="예정" tone="planned" items={projectProgress.planned} />
+      <div className="mt-5 grid gap-3 xl:grid-cols-2">
+        {stageProgress.stages.map((stage) => (
+          <StageCard key={stage.title} stage={stage} />
+        ))}
       </div>
     </article>
   );
 }
 
-function ProgressList({
-  title,
-  tone,
-  items,
+function StageCard({
+  stage,
 }: {
-  title: string;
-  tone: "done" | "active" | "planned";
-  items: string[];
+  stage: (typeof stageProgress.stages)[number];
 }) {
   const toneClass = {
     done: "bg-emerald-100 text-emerald-900 ring-emerald-300",
     active: "bg-sky-100 text-sky-900 ring-sky-300",
     planned: "bg-[var(--summary-bg)] text-[var(--muted)] ring-[var(--border)]",
-  }[tone];
+  }[stage.status];
+  const statusLabel = {
+    done: "완료",
+    active: "검증 중",
+    planned: "예정",
+  }[stage.status];
 
   return (
-    <div>
-      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${toneClass}`}>
-        {title}
-      </span>
-      <ul className="mt-3 space-y-2">
-        {items.map((item) => (
-          <li className="text-sm leading-5 text-[var(--soft-text)]" key={item}>
+    <article className="rounded-lg border border-[var(--border)] bg-[var(--summary-bg)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-black text-[var(--text)]">{stage.title}</h3>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${toneClass}`}>
+          {statusLabel}
+        </span>
+      </div>
+      <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--track)]">
+        <div
+          className="h-full rounded-full bg-[var(--primary)]"
+          style={{ width: `${stage.progress}%` }}
+        />
+      </div>
+      <p className="mt-3 text-xs font-bold text-[var(--primary)]">
+        {stage.progress}% / 다음: {stage.next}
+      </p>
+      <ul className="mt-3 grid gap-2">
+        {stage.items.map((item) => (
+          <li
+            className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-bold text-[var(--soft-text)]"
+            key={item}
+          >
             {item}
           </li>
         ))}
       </ul>
-    </div>
+    </article>
   );
 }
 

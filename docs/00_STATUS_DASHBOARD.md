@@ -78,6 +78,9 @@
 - [x] Gmail 목록/상세/초안 생성 UI
 - [x] Google API 비활성 오류 섹션별 표시
 - [x] Google API 활성화 링크 UI
+- [x] 통합 운영 Dashboard 구현
+- [x] 프로젝트별 Schedule 작업리스트 제거
+- [x] Admin 전체 작업 단계 현황판 정리
 
 ## 진행 중
 
@@ -137,6 +140,8 @@
 | Google Contacts 조회 | route 및 검색 UI 구현됨 |
 | Gmail 조회/작성 | 목록/검색/상세/초안 생성 route 및 UI 구현됨 |
 | Google 연동 오류 표시 | Contacts/Gmail 섹션별 메시지 및 API 활성화 링크 구현됨 |
+| 로컬 `/` Dashboard | 구현됨, 노트/과제/운영 health/검증 레일 요약 표시 |
+| 로컬 `/admin` 작업 단계 | 전체 프로젝트를 8개 단계로 정리해 진행률/다음 작업 표시 |
 
 ## 다음 작업
 
@@ -186,6 +191,8 @@
 | 2026-06-28 | current | Google Contacts 조회 route 및 검색 UI 추가 |
 | 2026-06-28 | current | Gmail 목록/상세/초안 생성 route 및 UI 추가 |
 | 2026-06-28 | current | Google API 비활성 오류별 설정 링크 추가 |
+| 2026-06-29 | current | 통합 운영 Dashboard 추가 |
+| 2026-06-29 | current | 프로젝트별 Schedule 작업리스트 제거 및 Admin 단계 현황판 정리 |
 | 2026-06-28 | pending | Scan multi-image upload input 추가, 스캔센터/PDF 진행중 전환 |
 | 2026-06-28 | pending | OpenAI OCR API route 및 이미지 첨부 OCR 버튼 추가 |
 | 2026-06-28 | pending | 카메라 이미지 캡처 첨부 입력 추가 |

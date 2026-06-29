@@ -83,6 +83,9 @@
 - [x] Gmail 상세 본문 조회 route 구현
 - [x] Gmail 초안 생성 route 구현
 - [x] Gmail 목록/상세/초안 생성 UI 구현
+- [x] 통합 운영 Dashboard 구현
+- [x] 프로젝트별 Schedule 작업리스트 제거
+- [x] Admin 전체 작업 단계 현황판 정리
 - [x] Notes Supabase DB 저장 경로 구현
 - [x] Notes 파일 첨부 UI 및 Supabase Storage 업로드 경로 구현
 - [x] Supabase Storage service role 업로드/삭제 검증
